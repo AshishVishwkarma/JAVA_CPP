@@ -1,1 +1,833 @@
-TO DO
+Anonymous implementation of an interface:
+----------------------------------------
+JAVA:
+class Data
+{
+	public Data(String str){data = str; }
+	public String toString(){return data;}
+	private String data;
+}
+
+interface Visitor
+{
+    void visit(Data data);
+}
+
+class DataStore
+{
+    public void visitData(Visitor visitor) { 
+		// Invokes visitor with each item of data.
+		Data d = new Data("Awesome!");
+		visitor.visit(d);
+	}
+}
+
+class AnonymousClass{
+	// Imagine one would write something like:
+	public void inSomeFunction(DataStore store)
+	{
+		String myName = "bob";
+		// myName = "Ross"; //  error: local variables referenced from an inner class must be final or effectively final
+							//  private String person = myName;		
+
+		Visitor myVisitor = new Visitor(){
+			@Override
+			public void visit(Data data) 
+			{
+				System.out.println( person + " is visiting " + data);
+			}
+			private String person = myName;
+		};
+		store.visitData(myVisitor);
+	}
+	
+	public static void main(String args[])
+	{
+		DataStore ds = new DataStore();
+		AnonymousClass ac = new AnonymousClass();
+		ac.inSomeFunction(ds);
+	}
+}
+OUTPUT:
+javac Data.java Visitor.java DataStore.java AnonymousClass.java -d Class
+java -cp Class AnonymousClass
+==> bob is visiting Awesome!
+================================================================================
+C++:
+class Data
+{
+	public:
+		Data(std::string str):data(str){}
+		friend std::ostream& operator << (std::ostream&, const Data&);
+	private:
+		std::string data;
+};
+
+std::ostream& operator << (std::ostream& out, const Data& D)
+{
+	return out << D.data;
+}
+
+class Visitor
+{
+	public:
+		virtual void visit(const Data& data) = 0;
+};
+
+class DataStore
+{
+	public:
+		template <typename T> void visitData(T visitor) { 
+			// bunch of calls to visitor.visit(...) ...
+			Data d("Awesome!");
+			visitor.visit(d);
+		}
+};
+	
+// Imagine one would write something like:
+void inSomeFunction(DataStore& store)
+{
+    std::string myName = "bob";
+	store.visitData([myName](const Data& data) {
+			std::cout << myName << " is visiting " << data << std::endl;
+		});
+	// NOTE: C++ template mechanism uses duck typing - in this case the template parameter 
+	// type Visitor is used by calling operator() on instances of it ... so any type that 
+	// implements operator() works - and that includes lambdas. 
+}
+
+int main()
+{
+   DataStore ds;
+   inSomeFunction(ds);
+   return 0;
+}
+OUTPUT:
+g++ prog.cc -Wall -Wextra -I/opt/wandbox/boost-1.68.0/gcc-head/include -std=c++11	
+prog.cc: In instantiation of 'void DataStore::visitData(T) [with T = inSomeFunction(DataStore&)::<lambda(const Data&)>]':
+prog.cc:63:4:   required from here
+prog.cc:53:12: error: 'struct inSomeFunction(DataStore&)::<lambda(const class Data&)>' has no member named 'visit'
+   visitor.visit(d);
+
+---------------------------------------------------------------------------------------
+class DataStore
+{
+	public:
+		void visitData(Visitor& visitor) { 
+			// Invokes visitor with each item of data.
+			Data d("Awesome!");
+			visitor.visit(d);
+		}
+};
+
+void inSomeFunction(DataStore& store)
+{
+    std::string myName = "bob";
+	
+	class : public Visitor{
+		public:
+			void visit(const Data& data){
+				std::cout << myName << " is visiting " << data << std::endl;
+			}
+	} myVisitor;
+	
+	store.visitData(myVisitor);
+}
+OUTPUT:
+$g++ -std=c++11 -o main *.cpp
+main.cpp: In member function ‘virtual void inSomeFunction(DataStore&)::<unnamed class>::visit(const Data&)’:
+main.cpp:43:18: error: use of local variable with automatic storage from containing function
+     std::cout << myName << " is visiting " << data << std::endl;
+main.cpp:38:17: note: ‘std::__cxx11::string myName’ declared here
+     std::string myName = "bob";
+------------------------------------------------------------------------------------------
+void inSomeFunction(DataStore& store)
+{
+    static std::string myName = "bob";
+	
+	class : public Visitor{
+		public:
+			void visit(const Data& data){
+				std::cout << myName << " is visiting " << data << std::endl;
+			}
+	} myVisitor;
+	
+	store.visitData(myVisitor);
+}
+OUTPUT:
+$g++ -std=c++11 -o main *.cpp
+$main
+==> bob is visiting Awesome!
+/*******************************************************************************************/
+Abstract class implementation:
+abstract class AbsBase{
+	protected int data;
+	public int getData(){return data;}
+	public abstract void setData(int val);
+}
+
+class ConDerived extends AbsBase{
+	public void setData(int val){data = 10*val;}
+}
+
+class TestClass{
+	public static void testMethod1(){
+		System.out.println("testMethod1");
+		AbsBase absObj;
+		//absObj = new AbsBase(); //  error: AbsBase is abstract; cannot be instantiated
+		absObj = new ConDerived();
+		absObj.setData(4);
+		System.out.println("Current data value = "+absObj.getData());		
+	}
+	
+	public static void testMethod2(){
+		System.out.println("testMethod2");
+		AbsBase absObj;
+		absObj = new ConDerived();
+		absObj.setData(4);	
+
+		AbsBase absObj2 = absObj;
+		System.out.println("Current data value = "+absObj2.getData());		
+	}
+	
+	public static void testMethod3(){
+		System.out.println("testMethod3");
+		AbsBase absObj;
+		absObj = new ConDerived();
+		absObj.setData(4);	
+
+		AbsBase absObj2;
+		absObj2 = absObj;
+		System.out.println("Current data value = "+absObj2.getData());		
+	}
+	
+	public static void testMethod4(){
+		System.out.println("testMethod4");
+		AbsBase absObj;
+		absObj = new ConDerived();
+		absObj.setData(4);
+		
+		AbsBase absObj2;
+		//absObj2 = new ConDerived(absObj); // error: constructor ConDerived in class ConDerived cannot be applied to given types;
+		//System.out.println("Current data value = "+absObj2.getData());
+	}
+	
+	public static void testMethod5(AbsBase absObj){
+		System.out.println("testMethod5");
+		absObj.setData(5);
+		System.out.println("Current data value = "+absObj.getData());
+	}
+	
+	public static void main(String args[]){
+		testMethod1();
+		testMethod2();
+		testMethod3();
+		testMethod4();
+		testMethod5(new ConDerived());
+	}
+}
+===========================================================================================
+class AbsBase{
+	protected:
+		//AbsBase(); // To make class abstract
+				   // Runtime error: In function `ConDerived::ConDerived()': undefined reference to `AbsBase::AbsBase()'
+		AbsBase(){}
+		int data;
+	public:
+		int getData(){return data;}
+		virtual void setData(int val) = 0; // To make method abstract
+};
+
+class ConDerived : public AbsBase{
+	public:
+		void setData(int val){data = 10*val;}
+};
+
+ConDerived gfunc(){cout << "func" << endl;}
+template<typename T> class TD; // Type Displayer
+
+class TestClass{
+	public:
+	void testMethod1(){
+		cout << "testMethod1:" << endl;
+		//AbsBase absObj; // error: ‘AbsBase::AbsBase()’ is protected within this context
+						// error: cannot declare variable ‘absObj’ to be of abstract type ‘AbsBase’
+	}
+	
+	void testMethod2(){
+		cout << "testMethod2:" << endl;
+		//AbsBase absObj(AbsBase()); // error: invalid abstract return type ‘AbsBase’ : for AbsBase()
+		// NOTE: This error is not there if setData() is not pure virtual function.
+		ConDerived conObj(ConDerived());
+		//conObj.setData(3); // error: request for member ‘setData’ in ‘conObj’, which is of non-class type ‘ConDerived(ConDerived (*)())’
+		//conObj(func); // undefined reference to `conObj(ConDerived (*)())'
+		TD<decltype(conObj)> conObjType; // error: aggregate ‘TD<ConDerived(ConDerived (*)())> conObjType’ has incomplete type and cannot be defined
+		                                 // => Type of conObj = ConDerived(ConDerived (*)())
+		cout << "type of conObj = " << typeid(conObj).name() << endl; // type of conObj = F10ConDerivedPFS_vEE
+		using boost::typeindex::type_id_with_cvr;
+		cout << "type of conObj = " << type_id_with_cvr<decltype(conObj)>().pretty_name() << endl; 
+				// type of conObj = ConDerived (ConDerived (*)())		
+	}
+	
+	void testMethod3(){
+		cout << "testMethod3:" << endl;
+		//AbsBase& refAbs = AbsBase(); // error: invalid cast to abstract class type ‘AbsBase’
+	}
+	
+	void testMethod4(){
+		cout << "testMethod4:" << endl;
+		//AbsBase& refAbs(AbsBase()); // error: invalid abstract return type ‘AbsBase’
+		// NOTE: This error is not there if setData() is not pure virtual function.
+	}
+	
+	void testMethod5(){
+		cout << "testMethod5:" << endl;
+		//AbsBase* ptrAbs = new AbsBase(); // error: invalid new-expression of abstract class type ‘AbsBase’
+	}
+	
+	void testMethod6(){
+		cout << "testMethod6:" << endl;
+		//AbsBase absObj(ConDerived()); // error: invalid abstract return type ‘AbsBase’
+		// NOTE: This error is not there if setData() is not pure virtual function.
+		ConDerived conObj(ConDerived);
+		conObj(ConDerived()); // undefined reference to `conObj(ConDerived)'
+	}
+	
+	void testMethod7(){
+		cout << "testMethod7:" << endl;
+		//AbsBase absObj = ConDerived(); // error: cannot allocate an object of abstract type ‘AbsBase’
+										// error: cannot declare variable ‘absObj’ to be of abstract type ‘AbsBase’
+		// NOTE: This error is not there if setData() is not pure virtual function.
+	}
+	
+	void testMethod8(){
+		cout << "testMethod8:" << endl;
+		//AbsBase& refAbs = ConDerived(); // error: cannot bind non-const lvalue reference of type ‘AbsBase&’ to an rvalue of type ‘AbsBase’
+		//refAbs.setData(4);
+		//cout << "Current data value = " << refAbs.getData();
+	}
+	
+	void testMethod9(){
+		cout << "testMethod9:" << endl;
+		//AbsBase& refAbs(ConDerived());
+		//refAbs.setData(4); // error: request for member ‘setData’ in ‘refAbs’, which is of non-class type ‘AbsBase&(ConDerived (*)())’
+		//cout << "Current data value = "+refAbs.getData(); // error: request for member ‘getData’ in ‘refAbs’, which is of non-class type ‘AbsBase&(ConDerived (*)())’
+	}
+	
+	void testMethod10(){
+		cout << "testMethod10:" << endl;
+		ConDerived conObj; 
+		AbsBase& refAbs = conObj;
+		refAbs.setData(4);
+		cout << "Current data value = " << refAbs.getData() << endl;
+	}
+	
+	void testMethod11(){
+		cout << "testMethod11:" << endl;
+		ConDerived conObj; 
+		AbsBase& refAbs = conObj;
+		refAbs.setData(4);
+		
+		//AbsBase& refAbs2 = ConDerived(refAbs); // error: no matching function for call to ‘ConDerived::ConDerived(AbsBase&)’
+		//refAbs2.setData(5);
+		//cout << "Current data value = " << refAbs2.getData();
+	}
+	
+	void testMethod12(){
+		cout << "testMethod12:" << endl;
+		AbsBase* ptrAbs = new ConDerived();
+		ptrAbs->setData(4);
+		cout << "Current data value = " << ptrAbs->getData() << endl;
+	}
+	
+	void testMethod13(){
+		cout << "testMethod13:" << endl;
+		AbsBase* ptrAbs = new ConDerived();
+		ptrAbs->setData(4);
+		
+		//AbsBase* ptrAbs2 = new ConDerived(ptrAbs); // error: no matching function for call to ‘ConDerived::ConDerived(AbsBase*&)’
+		//ptrAbs2->setData(5);
+		//cout << "Current data value = " << ptrAbs2->getData();
+	}
+	
+	//void testMethod14(AbsBase absObj){ // error: cannot declare parameter 'absObj' to be of abstract type 'AbsBase'
+	//	cout << "testMethod14:" << endl;
+	//	absObj.setData(4);
+	//	cout << "Current data value = "+absObj.getData();
+	//}
+	
+	void testMethod15(AbsBase& refAbs){
+		cout << "testMethod15:" << endl;
+		refAbs.setData(4);
+		cout << "Current data value = " << refAbs.getData() << endl;
+	}
+	
+	void testMethod16(AbsBase* ptrAbs){
+		cout << "testMethod16:" << endl;
+		ptrAbs->setData(5);
+		cout << "Current data value = " << ptrAbs->getData() << endl;
+	}
+	
+};
+
+void AbsBase::setData(int val){data = 0; cout << "AbsBase::setData()" << endl;}
+class ConDerived2 : public AbsBase{
+	public:
+		//void setData(int val){data = 10*val;}
+};
+
+class TestClass2{
+	void testMethod1(){
+		ConDerived2 con2Obj; // error: cannot declare variable ‘con2Obj’ to be of abstract type ‘ConDerived2’
+							 // error: no matching function for call to ‘AbsBase::setData()’
+		AbsBase& refAbs = con2Obj;
+		refAbs.setData();
+		cout << "Current data value = " << refAbs.getData() << endl;
+	}  
+};
+
+
+void main(){
+	cout << "Test started." << endl;
+	TestClass testObj;
+	testObj.testMethod1();
+	testObj.testMethod2();
+	testObj.testMethod3();
+	testObj.testMethod4();
+	testObj.testMethod5();
+	testObj.testMethod6();
+	testObj.testMethod7();
+	testObj.testMethod8();
+	testObj.testMethod9();
+	testObj.testMethod10();
+	testObj.testMethod11();
+	testObj.testMethod12();
+	testObj.testMethod13();
+	ConDerived conObj;
+    conObj.setData(2);
+	testObj.testMethod15(conObj);
+    testObj.testMethod16(&conObj);
+	cout << "Test ended." << endl;
+}
+
+/*******************************************************************************************/
+Creation of temporaries:
+class A{
+	private:
+		int data;
+	public:
+		void setData(int val){data = val;}
+		int getData(){return data;}
+};
+
+void someFunc(A& ref){
+	cout << "Org Data = " << ref.getData() << endl;
+	ref.setData(50);
+	cout << "Updated Data = " << ref.getData() << endl;
+}
+
+template<typename T> void someTemplateFunc(T& ref){
+	cout << "Org Data = " << ref.getData() << endl;
+	ref.setData(50);
+	cout << "Updated Data = " << ref.getData() << endl;
+}
+
+int main()
+{
+    A obj;
+	obj.setData(40);
+	const A& clref = obj;
+	//cout << "Before call: " << clref.getData() << endl; // error: passing 'const A' as 'this' argument discards qualifiers [-fpermissive]
+	//someFunc(clref); // error: binding reference of type 'A&' to 'const A' discards qualifiers
+	//cout << "After call: " << clref.getData() << endl; // error: passing 'const A' as 'this' argument discards qualifiers [-fpermissive]
+	
+	cout << "Before call: " << obj.getData() << endl;
+	//someTemplateFunc(clref); // In instantiation of 'void someTemplateFunc(T&) [with T = const A]'
+		// error: passing 'const A' as 'this' argument discards qualifiers [-fpermissive]
+		//	cout << "Org Data = " << ref.getData() << endl;
+		// :
+		// NOTE: type of T: A const; Type of ref: A const&
+		
+	cout << "After call: " << obj.getData() << endl;
+}
+/*******************************************************************************************/
+Builder:
+public class NutritionFacts{
+	private final int servingSize;
+	private final int servings;
+	private final int calories;
+	private final int fat;
+	private final int sodium;
+	private final int carbs;
+	
+	public static class Builder{
+		// Required parameters
+		private final int servingSize;
+		private final int servings;
+		// Optional parameters
+		private int calories = 0;
+		private int fat = 0;
+		private int sodium = 0;
+		private int carbs = 0;
+		
+		public Builder(int servingSize, int servings){
+			this.servingSize = servingSize;
+			this.servings = servings;
+		}
+		// Building parts
+		public Builder calories(int val){calories = val; return this;}
+		public Builder fat(int val){fat = val; return this;}
+		public Builder sodium(int val){sodium = val; return this;}
+		public Builder carbs(int val){carbs = val; return this;}
+		
+		// Build Object
+		public NutritionFacts build(){ return new NutritionFacts(this);}
+	}
+	
+	private NutritionFacts(Builder builder){
+		servingSize = builder.servingSize;
+		servings = builder.servings;
+		calories = builder.calories;
+		fat = builder.fat;
+		sodium = builder.sodium;
+		carbs = builder.carbs;
+	}
+}
+
+import org.junit.Test;
+import junit.framework.TestCase;
+
+public class TestBuilderPattern extends TestCase{
+	@Test public void testOne(){ NutritionFacts nfObj = new NutritionFacts.Builder(240, 8).build();}
+	@Test public void testTwo(){ NutritionFacts nfObj = new NutritionFacts.Builder(240, 8).calories(300).build();}
+	@Test public void testThree(){ NutritionFacts nfObj = new NutritionFacts.Builder(240, 8).sodium(50).build();}
+	@Test public void testFour(){ NutritionFacts nfObj = new NutritionFacts.Builder(240, 8).calories(300).sodium(50).fat(10).carbs(500).build();}
+}
+==================================================================================
+class NutritionFacts{
+	private:
+		const int servingSize;
+		const int servings;
+		const int calories;
+		const int fat;
+		const int sodium;
+		const int carbs;
+		
+	public:
+		NutritionFacts(int servingSize, int servings, int calories, int fat, int sodium, int carbs): servingSize(servingSize),servings(servings),calories(calories),fat(fat),sodium(sodium),carbs(carbs){}
+};
+
+class Builder{
+	public:
+		virtual Builder& servingSize(int){return *this;}
+		virtual Builder& servings(int){return *this;}
+		virtual Builder& calories(int){return *this;}
+		virtual Builder& fat(int){return *this;}
+		virtual Builder& sodium(int){return *this;}
+		virtual Builder& carbs(int){return *this;}
+		
+		virtual NutritionFacts* build()=0;
+		virtual ~Builder() = default;
+        Builder(const Builder&) = default; // declaring Copy CTOR is preventing creation of default CTOR by compiler
+		Builder() = default;
+        Builder& operator=(const Builder&) = default;
+};
+
+class ConcreteBuilder : public Builder{
+	private:
+		// Required parameters
+		const int _servingSize;
+		const int _servings;
+		// Optional parameters
+		int _calories;
+		int _fat;
+		int _sodium;
+		int _carbs;
+		
+	public:
+		ConcreteBuilder(int servingSize, int servings):_servingSize(servingSize),_servings(servings){
+			_calories = 0;
+			_fat = 0;
+			_sodium = 0;
+			_carbs = 0;
+		}
+		// Building parts
+		Builder& calories(int val) override {_calories = val; return *this;}
+		Builder& fat(int val)override {_fat = val; return *this;}
+		Builder& sodium(int val) override{_sodium = val; return *this;}
+		Builder& carbs(int val)override{_carbs = val; return *this;}
+		
+		// Build Object
+		NutritionFacts* build() override { return new NutritionFacts(_servingSize, _servings, _calories, _fat, _sodium, _carbs);}
+};
+
+class TestClass{
+	public:
+		void testOne(){
+			ConcreteBuilder builder{240, 8}; // C++11
+			NutritionFacts* nfPtr = builder.calories(300).build();
+			delete nfPtr;
+		}
+		void testTwo(){
+			ConcreteBuilder builder{240, 8}; // C++11
+			NutritionFacts* nfPtr = builder.sodium(50).build();
+			delete nfPtr;
+		}
+		void testThree(){
+			ConcreteBuilder builder(240, 8);
+			NutritionFacts* nfPtr = builder.calories(300).sodium(50).fat(10).carbs(500).build();
+			delete nfPtr;
+		}
+};
+
+int main(){
+	TestClass testObj;
+	testObj.testOne();
+	testObj.testTwo();
+	testObj.testThree();
+}
+/*******************************************************************************************/
+Builder Hierarchy:
+import java.util.Set;
+import java.util.EnumSet;
+import java.util.Objects;
+public abstract class Pizza{
+	public enum Topping{HUM, MUSHRUM, ONION, PEPPER, SAUSAGE}
+	final Set<Topping> toppings;
+	
+	abstract static class Builder<T extends Builder<T>>{
+	//abstract static class Builder<T>{
+		EnumSet<Topping> toppings = EnumSet.noneOf(Topping.class);
+		
+		public T addTopping(Topping topping){
+			toppings.add(Objects.requireNonNull(topping));
+			return self();
+		}
+		
+		public abstract Pizza build();
+		protected abstract T self();
+	}
+	
+	public void print(){
+		System.out.println("Toppings:");
+		for(enum e : toppings){
+			switch(e){
+				case HUM: System.put.println("HUM"); break;
+				case MUSHRUM: System.put.println("MUSHRUM"); break;
+				case ONION: System.put.println("ONION"); break;
+				case PEPPER: System.put.println("PEPPER"); break;
+				case SAUSAGE: System.put.println("SAUSAGE"); break;
+			}
+		}
+	}
+	
+	protected Pizza(Builder<?> builder){
+		toppings = builder.toppings.clone();
+	}
+}
+
+public class NyPizza extends Pizza{
+	public enum Base{BAKED, GRILLED, STUFFED}
+	private final Base base;
+	
+	public static class Builder extends Pizza.Builder<Builder>{
+		private final Base base;
+		
+		public Builder(Base base){this.base = Objects.requireNonNull(base);}
+		
+		@Override public NyPizza build(){return new NyPizza(this);}
+		@Override protected Builder self(){return this;}
+	}
+
+	@Override public void print(){
+		System.out.println("Base:");
+		switch(base){
+			case BAKED:	System.out.println("BAKED"); break;
+			case GRILLED: System.out.println("GRILLED"); break;
+			case STUFFED: System.out.println("STUFFED"); break;
+		}
+		super.print();
+	}
+	
+	private NyPizza(Builder builder){
+		super(builder);
+		base = builder.base;
+	}
+}
+
+import org.junit.Test;
+import junit.framework.TestCase;
+
+public class TestNyPizza extends TestCase{
+	
+	//@Test public void testOne(){ NyPizza nyPizza = new NyPizza.Builder(BAKED).build();}
+	@Test public void testOne(){ NyPizza nyPizza = new NyPizza.Builder(NyPizza.Base.BAKED).build(); nyPizza.print();}
+	@Test public void testTwo(){ NyPizza nyPizza = new NyPizza.Builder(NyPizza.Base.BAKED).addTopping(NyPizza.Topping.MUSHRUM).build(); nyPizza.print();}
+	@Test public void testThree(){ NyPizza nyPizza = new NyPizza.Builder(NyPizza.Base.GRILLED).addTopping(NyPizza.Topping.ONION).build(); nyPizza.print();}
+	@Test public void testFour(){ NyPizza nyPizza = new NyPizza.Builder(NyPizza.Base.STUFFED).addTopping(NyPizza.Topping.ONION).addTopping(NyPizza.Topping.MUSHRUM).addTopping(NyPizza.Topping.PEPPER).build(); nyPizza.print();}
+}
+==================================================================================
+class Pizza{
+	public:
+		enum class Topping{HUM, MUSHRUM, ONION, PEPPER, SAUSAGE}; // Scoped enum
+		
+		struct AbstractBuilder{
+			public:
+				AbstractBuilder& addTopping(Topping topping){
+					_toppings.insert(topping);
+					return *this;
+				}
+			
+				virtual Pizza* build() = 0;
+			
+			public:
+				set<Topping> _toppings{}; // empty set initializer
+		};
+		
+		virtual void print(){
+			cout << "Toppings:" << endl;
+			for (auto e : _toppings){
+				switch(e){
+					case Topping::HUM: cout << "HUM" << endl; break;
+					case Topping::MUSHRUM: cout << "MUSHRUM" << endl; break;
+					case Topping::ONION: cout << "ONION" << endl; break;
+					case Topping::PEPPER: cout << "PEPPER" << endl; break;
+					case Topping::SAUSAGE: cout << "SAUSAGE" << endl; break;
+				}
+			}
+		}
+		
+		virtual ~Pizza()=default;
+	
+	protected:
+		Pizza(AbstractBuilder& builder): _toppings(builder._toppings){}
+		
+	private:
+		const set<Topping> _toppings;
+};
+
+class NyPizza : public Pizza{
+	public:
+		enum class Base{BAKED, GRILLED, STUFFED};
+		
+		struct Builder : public Pizza::AbstractBuilder{
+			public:
+				Base _base{};
+				
+			public:
+				Builder(Base base):_base(base){}
+				
+				NyPizza* build(){return new NyPizza(*this);}
+		};
+		
+		NyPizza(Builder& builder):Pizza(builder),_base(builder._base){}
+		
+		void print() override{
+			cout << "Base:" << endl;
+			switch(_base){
+				case Base::BAKED:	cout << "BAKED" << endl; break;
+				case Base::GRILLED: cout << "GRILLED" << endl; break;
+				case Base::STUFFED: cout << "STUFFED" << endl; break;
+			}
+			Pizza::print();
+		}
+		
+	private:
+		const Base _base;
+};
+
+class TestClass{
+	public:
+		void testOne(){
+			cout << "testOne:" << endl;
+			NyPizza* nyPtr = NyPizza::Builder(NyPizza::Base::BAKED).build();
+			delete nyPtr;
+		}
+		void testTwo(){
+			cout << "testTwo:" << endl;
+			//NyPizza* nyPtr = NyPizza::Builder(NyPizza::Base::BAKED).addTopping(NyPizza::Topping::MUSHRUM).build(); 
+			// error: invalid conversion from 'Pizza*' to 'NyPizza*' [-fpermissive]
+			Pizza* Ptr = NyPizza::Builder(NyPizza::Base::BAKED).addTopping(NyPizza::Topping::MUSHRUM).build(); 
+			delete Ptr;
+		}
+		void testThree(){
+			cout << "testThree:" << endl;
+			NyPizza* nyPtr = NyPizza::Builder(NyPizza::Base::GRILLED).addTopping(NyPizza::Topping::ONION).build();
+			// error: invalid conversion from 'Pizza*' to 'NyPizza*' [-fpermissive]
+			Pizza* Ptr = NyPizza::Builder(NyPizza::Base::GRILLED).addTopping(NyPizza::Topping::ONION).build();
+			delete Ptr;
+		}
+		void testFour(){
+			cout << "testFour:" << endl;
+			NyPizza* nyPtr = NyPizza::Builder(NyPizza::Base::STUFFED).addTopping(NyPizza::Topping::ONION).addTopping(NyPizza::Topping::MUSHRUM).addTopping(NyPizza::Topping::PEPPER).build();
+			// error: invalid conversion from 'Pizza*' to 'NyPizza*' [-fpermissive]
+			Pizza* Ptr = NyPizza::Builder(NyPizza::Base::STUFFED).addTopping(NyPizza::Topping::ONION).addTopping(NyPizza::Topping::MUSHRUM).addTopping(NyPizza::Topping::PEPPER).build(); 
+			delete Ptr;
+		}
+};
+
+int main(){
+	TestClass testObj;
+	testObj.testOne();
+	testObj.testTwo();
+	testObj.testThree();
+	testObj.testFour();
+}
+
+/*******************************************************************************************/
+[Self type idiom]:
+public abstract class BaseDate<T extends BaseDate<T>>{
+		public BaseDate withYear(int year) { 
+			System.out.println("BaseDate::withYear() :"+year); 
+			return self();
+		}
+		protected abstract T self();
+		
+	}
+	public final class ZonedDate extends BaseDate<ZonedDate> {
+		@Override protected ZonedDate self(){return this;}
+		public BaseDate withMonthOfYear(){
+			System.out.println("ZonedDate::withMonthOfYear()");
+			return this;
+		}
+		
+	}
+	public final class LocalDate extends BaseDate<LocalDate> {
+		@Override protected LocalDate self(){return this;}
+		public BaseDate withMonthOfYear(){
+			System.out.println("LocalDate::withMonthOfYear()");
+			return this;
+		}
+/*******************************************************************************************/		
+Final:
+
+/*******************************************************************************************/
+Exceptions:
+class A{
+	public:
+		~A(){
+			cout << "~A()" << endl;
+			throw 30; // warning: throw will always call terminate() [-Wterminate]
+		}
+};
+void somefuncCausingException(){
+	throw 25;
+}
+
+void testMethod(){
+	try{
+		A objA;
+		somefuncCausingException();
+	}
+	catch (int i){
+		cout << "exception is caught! value = " << i << endl;
+	}
+}
+int main(){
+	cout << ">> main" << endl;
+	testMethod();
+	cout << "<< main" << endl;
+	return 0;
+}
+-----------------------------------------------------------------------
+void processWidget(shared_ptr<Widget> spw, int priority);
