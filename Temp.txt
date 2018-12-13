@@ -1,1 +1,1012 @@
-To Do
+Ingres vs Sybase:
+
+Sybase version:
+sp_version
+=>
+Script              Version	                                Status
+ODBC MDA Scripts	15.0.0.353/Wed 07-08-2009 19:06:25.12	Complete
+OLEDB MDA Scripts	15.0.0.353/Wed 07-08-2009 19:06:25.12	Complete
+installjdbc	        jConnect (TM) for JDBC(TM)/6.05(Build   Complete
+                    26564)/P/EBF16956/JDK14/Mon Jul 13  
+					1:04:29 2009	
+
+select @@version
+=>
+Adaptive Server Enterprise/12.5.4/EBF 16785 ESD#10/P/Sun_svr4/OS 5.8/ase1254/2159/64-bit/FBO/Mon Nov  2 13:08:08 2009					
+----------------------------------------------------------------------------------
+$SYBASE/bin/bcp $SOURCE_DB..trade_overwrite out $DATA_DIR/trade_overwrite.dat -c -t"~^~#" -U$RISK_LOGIN -P$RISK_PASSWORD -S$SOURCE_SERVER
+$SYBASE/bin/bcp $TARGET_DB..trade_overwrite in  $DATA_DIR/trade_overwrite.dat -c -t"~^~#" -U$RISK_LOGIN -P$RISK_PASSWORD -S$TARGET_SERVER
+
+bcp risk_common..map_centre_code out map_centre_code_sop-1998.bk -SRSK_PRD1 -Uca_appdbo_oper_prodX -PXXXXX -b5000 -c
+bcp risk_common..map_centre_code in map_centre_code_sop-1998.bk -SRSK_PRD1 -Uca_appdbo_oper_prodX -PXXXXX -b5000 -c
+
+bcp risk_common..ven_instrument_rating_nd out ven_instrument_rating_nd_cont.bcp -SRSK_CON1 -Uca_appdbo_oper_cont2 -PXXXXXX -b5000 -c
+bcp risk_common..ven_instrument_rating_nd in ven_instrument_rating_nd.bcp -SRSK_CON1 -Uca_appdbo_oper_cont2 -PXXXXXX -b5000 -c
+
+bcp risk_common..trade_leg in /apps/risk/data/ICE/$DATE/ftpiceln.1/ice_trade_leg.dat.1005.bcp -f /apps/risk/db/risk_common/formats/trade_leg.fmt -U
+$USERNAME -P $PASSWORD -S $SERVER -b 20000
+----------------------------------------------------------------------------------
+Current Date:
+select getdate()
+=> Jun  5 2018  5:20AM
+----------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
+
+----------------------------------------------------------------------------
+Heap table:
+If you create a table on Adaptive Server, but do not create a clustered index, the table is stored as a heap, which means the data rows are not stored in any particular order.
+
+Most applications perform better with clustered indexes on the tables. However, heap tables work well for small tables that use only a few pages, and for tables where changes are infrequent.
+
+Heap tables can be useful for tables that do not require:
+- Direct access to single, random rows
+- Ordering of result sets
+
+Heap tables do not work well for queries against most large tables that must return a subset of the table’s rows.
+Partitioned heap tables are useful in applications with frequent, large volumes of batch inserts where the overhead of dropping and creating clustered indexes is unacceptable.
+Sequential disk access is efficient, especially with large I/O and asynchronous prefetch. However, the entire table must always be scanned to find any value, and this has potentially large impact in the data cache and other queries.
+Batch inserts can also perform efficient sequential I/O. However, there is a potential bottleneck on the last page if multiple processes try to insert data concurrently.
+Sometimes, an index exists on the columns named in a where clause, but the optimizer determines that it would be more costly to use the index than to perform a table scan.
+Table scans are always used when you select all rows in a table. The only exception is when the query includes only columns that are keys in a nonclustered index.
+
+Maintaining heap tables:
+Over time, I/O on heap tables can become inefficient as storage becomes fragmented. Deletes and updates can result in:
+- Many partially filled pages
+- Inefficient large I/O, since extents may contain many empty pages
+- Forwarded rows in data-only-locked tables
+
+To reclaim space in heap tables:
+- Use the reorg rebuild command (data-only-locked tables only)
+- Create and then drop a clustered index
+- Use bcp (the bulk copy utility) and truncate table
+----------------------------------------------------------------------------
+Index:
+Indexes are database objects that can be created for a table to speed direct access to specific data rows. Indexes store the values of the key(s) that were named when the index was created, and logical pointers to the data pages or to other index pages.
+
+Sybase uses indexes to speed data retrieval for select, update, delete, and insert operations.
+
+Indexes are the most important physical design element in improving database performance:
+- Indexes help prevent table scans. Instead of reading hundreds of data pages, a few index pages and data pages can satisfy many queries.
+- For some queries, data can be retrieved from a nonclustered index without ever accessing the data rows.
+- Clustered indexes can randomize data inserts, avoiding insert “hot spots” on the last page of a table.
+- Indexes can help avoid sorts, if the index order matches the order of columns in an order by clause.
+
+In addition to their performance benefits, indexes can enforce the uniqueness of data.
+
+Although indexes speed data retrieval, they can slow down data modifications, since most changes to the data also require updating the indexes. Optimal indexing demands:
+- An understanding of the behavior of queries that access unindexed heap tables, tables with clustered indexes, and tables with nonclustered indexes
+- An understanding of the mix of queries that run on your server
+- An understanding of the Adaptive Server optimizer
+
+Adaptive Server provides two types of indexes:
+- Clustered indexes, where the table data is physically stored in the order of the keys on the index:
+For allpages-locked tables, rows are stored in key order on pages, and pages are linked in key order.
+For data-only-locked tables, indexes are used to direct the storage of data on rows and pages, but strict key ordering is not maintained.
+- Nonclustered indexes, where the storage order of data in the table is not related to index keys
+NOTE: You can create only one clustered index on a table because there is only one possible physical ordering of the data rows. You can create up to 249 nonclustered indexes per table.
+A table that has no clustered index is called a heap. The rows in the table are in no particular order, and all new rows are added to the end of the table.
+
+You can create indexes on more than one key. These are called composite indexes. Composite indexes can have up to 31 columns adding up to a maximum 600 bytes.
+Because you can create tables with columns wider than the limit for the index key, these columns become non-indexable. “Non-indexable” does not mean that you cannot use these columns in search clauses. Even though a column is non-indexable, you can still create statistics for it. Also, if you include the column in a where clause, it will be evaluated during optimization.
+
+If you create a composite nonclustered index on each column referenced in the query’s select list and in any where, having, group by, and order by clauses, the query can be satisfied by accessing only the index. 
+
+NOTE: you can create indexes to enforce the uniqueness of data and to randomize the storage location of inserts.
+----------------------------------------------------------------------------
+Index covering:
+-------------------------------------------------------------------------------------
+Error: 2601
+Severity: 14
+Message text:
+	Attempt to insert duplicate key row in object '%.*s' with unique index '%.*s'%S_EED
+
+Explanation:
+	No two rows can have the same index value (including NULL) in a column or columns with a unique index. Adaptive Server checks for duplicate values when the index is created (if data already exists) and checks each time data is added with an insert or update. Error 2601 occurs when you try to put duplicate index values into a column or columns with a unique index.
+
+Action:
+	Using a unique index makes sense only when uniqueness is a characteristic of the actual data. Choose one of the following solutions, depending on whether you need a unique index:
+	If you need duplicate index values in indexed columns, drop the unique index and create a nonunique index instead.
+	If you need a unique index on data that contains duplicate values, you must change some values to remove the duplicates:
+		i) Use a select statement to find the row that will be duplicated by the update or insert command.
+		ii) Modify either the data in the table or the data that you want to insert, so that the index values do not match.
+
+Additional information:
+	Refer to “create index” in the Reference Manual: Commands for information.
+
+Versions in which this error is raised:
+	All versions
+----------------------------------------------------------------------------
+Adaptive Server query optimizer:
+The Adaptive Server query optimizer uses a probabilistic costing model. It analyzes the costs of possible query plans and chooses the plan that has the lowest estimated cost. Since much of the cost of executing a query consists of disk I/O, creating the correct indexes for your applications means that the optimizer can use indexes to:
+- Avoid table scans when accessing data
+- Target specific data pages that contain specific values in a point query
+- Establish upper and lower bounds for reading data in a range query
+- Avoid data page access completely, when an index covers a query
+- Use ordered data to avoid sorts or to favor merge joins over nested-loop joins
+----------------------------------------------------------------------------
+APL and DOL tables:
+----------------------------------------------------------------------------
+Temporary tables:
+
+select product_name into #my_temp from GRS..PRODUCT where product_name ='Bill purchase'
+=> Creates a Temporary table "#my_temp" in current db?
+
+Select * from #my_temp
+
+CREATE TABLE #my_temp (product_name CHAR(30))
+=> Error: there is alredy an object named "#my_temp" in the databse.
+ 
+drop table #my_temp
+=> Drops the temporary table "#my_temp" from the cateloge
+
+Insert #my_temp select product_name from GRS..PRODUCT where product_name ='Bill purchase'
+=> Does not create table. The table "#my_temp" must be present in the current db.
+
+--------------------------------------------------------------------------------
+TO CHECK REPLICATION OF THE TABLE:
+
+	risk_common..sp_setreplicate table_name
+	GRS..sp_setreplicate GRS_APPLICATION_PARAMETER
+	
+Displays the replication status for all of the tables and stored procedures in the current database.
+	sp_setreplicate
+
+Displays the replication status for the publishers table.
+	sp_setreplicate publishers
+
+Enables replication for the publishers table.
+	sp_setreplicate publishers, 'true'
+--------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------
+The transaction log file:
+The transaction log file contains information that allows Sybase IQ to recover from a system failure. The transaction log is also required for auditing. The default file name extension for this file is .log.
+
+Transaction Log Space Management:
+SAP ASE provides a single transaction log segment per database. Space can be added to a log segment or removed from a log segment.
+Whenever the database client applications perform any data manipulation language (DML) operations on the data, SAP ASE produces log records that consume space in the transaction log. Typically there are several clients performing DMLs concurrently on the database and log records are appended to the log whenever user log caches (ULCs) for individual clients are full or in some other conditions such as when a data page is changed by multiple open transactions. Log records of several transactions are therefore typically interleaved in the transaction log space.
+
+Removing transactions from the transaction log to free the log space can be done using dump transaction. However, there different scenarios that can cause the transaction log can grow in such a way that the dump transaction command is not able to free space. In these situations, the log consumes space to such an extent that it affects the continuous availability of the database system for any write operations. The scenarios include:
+- Transactions are entered into the server but not committed. In this situation the log cannot be truncated because there is an active transaction.
+- Replication Server is slow in reading the log which prevents truncating the log.
+- A dump transaction has not been performed for a long period of time. Periodically dumping transactions can keep the size of the reserved space in the log limited and ensure that there is free space available in the log which allows the space freed after dump transaction to be reused for further logging activity.
+
+The system administrator can use the loginfo function to evaluate how the space of a transaction log is used:
+select db_id("risk_common") AS dbid => 8
+select loginfo(dbid, 'database_has_active_transaction') as has_act_tran
+select loginfo(8, 'database_has_active_transaction') as has_act_tran
+=> Function 'loginfo' not found. If this is a SQLJ function, use sp_help to check whether the object exists (sp_help may produce a large amount of output).
+
+
+Truncating the Log in Early Development Environments:
+dump transaction database_name with truncate_only
+dump transaction risk_common with truncate_only
+=>
+DUMP TRANSACTION for database 'risk_common' could not truncate the log. Either extend the log using ALTER DATABASE ... LOG ON command or eliminate the oldest active transaction in database 'risk_common' shown in syslogshold table.
+
+NOTE: After you run dump transaction with truncate_only, you must dump the database before you can run a routine log dump.
+--------------------------------------------------------------------------------------
+Trigger restrictions
+----------------------
+Adaptive Server imposes these limitations on triggers:
+- A table can have a maximum of three triggers: one update trigger, one insert trigger, and one delete trigger.
+- Each trigger can apply to only one table. However, a single trigger can incorporate all three user actions: update, insert, and delete.
+- You cannot create a trigger on a view or on a session-specific temporary table, though triggers can reference views or temporary tables.
+- The writetext statement does not activate insert or update triggers.
+- Although a truncate table statement is, similar to a delete without a where clause, because it removes all rows, it cannot fire a trigger, because individual row deletions are not logged.
+- You cannot create a trigger or build an index or a view on a temporary object (@object).
+- You cannot create triggers on system tables. If you try to create a trigger on a system table, Adaptive Server returns an error message and cancels the trigger.
+- You cannot use triggers that select from a text column or an image column in a table that has the same trigger inserts or deletes.
+
+If Component Integration Services is enabled, triggers have limited usefulness on proxy tables because you cannot examine the rows being inserted, updated, or deleted (via the inserted and deleted tables). You can create, then invoke, a trigger on a proxy table. However, deleted or inserted data is not written to the transaction log for proxy tables because the insert is passed to the remote server. Therefore, the inserted and deleted tables, which are actually views to the transaction log, contain no data for proxy tables.
+
+-------------------------------------------------------------------------
+SYSTEM PROCEDURES:
+sp_helpsegment "default"
+sp_xlogfull
+	=> Stored procedure 'sp_xlogfull' not found. Specify owner.objectname or use sp_help to check whether the object exists (sp_help may produce lots of output).
+sp_transactions 
+sp_helpdb
+sp_helpdb "risk_common"	
+
+sp_tables 
+	lists all user tables in a database when used in the following format:
+	sp_tables @table_type = "’TABLE’"
+	
+sp_columns
+	returns the datatype of any or all columns in one or more tables in a database.
+	
+sp_depends ut_book_control_u
+sp_helprotect book_control_audit
+select lockscheme('book_control_audit')
+
+sp_fixindex:  
+	repairs a set of indexes (rather than on a single index) on a systemt able when it has been corrupted. sp_fixindex rebuilds the data layer if the target table has a placement or clustered index (it reclaims the unused space in the data layer while working on the placement or clustered index of a system table).
+	
+	sp_fixindex 'testdb', 'sysprocedures'
+	Rebuilds all available indexes on the sysprocedures table in testdb. If the table has clustered or placement index, sp_fixindex reclaims the unused space by removing the garbage present in data pages (that is, it rebuilds the data pages).
+
+NOTE:
+Before you run sp_fixindex, make sure your database is in single-user mode, and is reconfigured to allow updates to system tables.
+After you run sp_fixindex:
+- Use the dbcc checktable command to verify that the corrupted index has been fixed
+- Disallow updates to system tables using sp_configure
+- Turn off single-user mode
+Do not run sp_fixindex on user tables.
+Do not run sp_fixindex on the clustered index of the sysobjects or sysindexes tables or on user tables. If you do, sp_fixindex returns the following error message:
+	The index with id 1 on sysobjects cannot be recreated.
+---------------------------------------------------------------------------
+SYSTEM TABLES:
+sysobjects:
+	select name, id, crdate, * from sysobjects where name = 'debug_log'	
+	
+-------------------------------------------------------------------------
+Revokes all object access permissions on the GRD_REPLICA..collateral_feed_ins_alias table from public (except decrypt permission):
+	revoke all on GRD_REPLICA..collateral_feed_ins_alias from public
+	
+list the permission details (must be a table in the current database):
+	sp_helprotect collateral_feed_ins_alias
+	
+	sp_helprotect looks for objects and users in the current database only.
+	If you do not specify an optional value such as granted, enabled, none, or role_name, Adaptive Server returns information on all roles 
+	activated by the current specified user.
+	If the specified user is not the current user, Adaptive Server returns information on all roles granted to the specified user.
+	Displayed information always includes permissions granted to the group in which the specified user is a member.
+	In granting permissions, a system administrator is treated as the object owner. If a system administrator grants permission on 
+	another user’s object, the owner’s name appears as the grantor in sp_helprotect output.
+	
+	Any user can execute sp_helprotect. Permission checks do not differ based on the granular permissions settings.
+	
+Displays information about all users in the current database:
+	sp_helpuser	
+	
+Displays information about Java classes and associated JARs that are installed in the database:
+	sp_helpjava
+	
+-------------------------------------------------------------------------
+	Adaptive Server Enterprise allows each user to be a member of only one group.
+	SQL Anywhere and Sybase IQ allow users to be members of multiple groups, and group hierarchies are allowed.
+	
+List of all users in grpName
+
+select * from sysgroups
+where group_name = ‘grpName’	
+------------------------------------------------------------------------------
+select * from risk_common..error_trigger where error_date >= CONVERT(DATETIME,'09/26/2017', 101)
+
+select top 10 * from risk_common..error_trigger order by error_date desc
+---------------------------------------------------------------------------------
+
+-------------------------------------------------------------	
+blk_rowxfer(	
+-----------------------------------------------------------------------------------------
+INDEX:
+	insert GRD_REPLICA..map_trading_party 
+		(type_id, ext_tp_id, grd_party_id, cis_code, foreign_key)
+		select distinct s.type_id, s.source_party, g.grd_legal_id, s.code_value, s.add_date
+		from GRD_REPLICA..sdm_trading_party s, risk_common..grd_ctrpty g (index nci1_grd_ctrpty)
+		where s.code_value = g.cis_code
+		
+		
+-----------------------------------------------------------------------------------------
+GETTING DB INFORMATION:
+select db_id("risk_common")
+
+GETTING TABLE INFORMATION:
+select object_id("trade")
+select object_name(1938978134)
+
+
+STORED PROCEDURE:
+@xxproc_name = name from sysobjects where id = @@procid
+
+
+GETTING INDEX INFORMATION:
+SELECT *  FROM sysindexes WHERE id=OBJECT_ID('dbo.map_trading_party')
+------------------------------------------------------------------------------------------
+CREATE TABLE #structs
+(
+    legal_cis                   udt_cis_code,
+    trade_structure_id          udt_id,
+    old_structure_trade_key_id  udt_trade_key_id,
+    new_structure_trade_key_id  udt_trade_key_id,
+    new_deal_no                 udt_trade_key_id,
+    new_deal_ticket_no          udt_trade_key_id,
+    ovw_flag                    udt_flag,
+    ss_flag                     udt_flag
+)
+INSERT  #structs values (	'FNNIFNL', null, '370|581193861|STR', '','','', 'Y', 'N')
+=> The column trade_structure_id in table #structs does not allow null values.
+
+select * from systypes where name = 'udt_id'
+=>
+uid|usertype|variable|allownulls|type|length|tdefault|domain|name|printfmt|prec|scale|ident|hierarchy|xtypeid|xdbid|accessrule
+1|104|0|0|56|4|0|0|udt_id||||0|15|||
+--------------------------------------------------------------------------------------------
+NOTE:  If you submit a query with an outer join and a qualification on a column from the inner table of the outer join, the results may not be what you expect. The qualification in the query does not restrict the number of rows returned, but rather affects which rows contain the null value. For rows that do not meet the qualification, a null value appears in the inner table’s columns of those rows.
+
+	select distinct gc.calendar_code, gh.calendar_code from GRS..GFS_CALENDAR gc left join GRS..GFS_CALENDAR_DATE gh on gc.calendar_code = gh.calendar_code where gh.calendar_code is null
+	=> 72 rows 
+	
+	select distinct gc.calendar_code, gh.calendar_code from GRS..GFS_CALENDAR gc, GRS..GFS_CALENDAR_DATE gh where gc.calendar_code *= gh.calendar_code and gh.calendar_code is null		
+	=> 197 rows [with all gh.calendar_code as null]
+	
+	select distinct gc.calendar_code, gh.calendar_code from GRS..GFS_CALENDAR gc, GRS..GFS_CALENDAR_DATE gh where convert(char(4), gc.calendar_code) *= convert(char(4), gh.calendar_code) and gh.calendar_code is null
+	=> 197 rows [with all gh.calendar_code as null]
+	
+	select count(distinct calendar_code) from GRS..GFS_CALENDAR
+	=> 197
+	
+	select count(distinct calendar_code) from GRS..GFS_CALENDAR_DATE
+	=> 155
+-----------------------------------------------------------------------------------------------
+-- Convert a date to a julian date (days since 1900)
+select "today"=datediff( dd, "", "09/23/2011")
+
+ -- returns yesterdays date i.e. today -1 
+select datediff(dd, "", dateadd(,dd,-1,getdate()))
+
+-- Convert a julian date to a normal date
+select dateadd( dd, 40569, "")
+----------------------------------------------------------------------------------------------	
+DB Error Msg in	LOG:
+Client Msg: 1-16843143: ct_dynamic(DEALLOC): user api layer: external error: The specified id does not exist on this connection.
+=> db_cb.c:
+callback function db_cb_CTClientMsg(CS_CONTEXT *psContext, CS_CONNECTION *psConnection, CS_CLIENTMSG *psMessage):
+	printf(acMsg_buff,"Client Msg: %d-%d: ", psMessage->severity, psMessage->msgnumber)
+	strncat(acMsg_buff, psMessage->msgstring, psMessage->msgstringlen)
+	acMsg_buff[iMsg_length + psMessage->textlen] = '\0'
+
+Server Msg from RSK_PRD1: 10-3621-0: Command has been aborted. - Stored Proc usp_reg_main_link_updates, Line 39
+=> db_cb.c:
+callback function db_cb_CTServerMsg(CS_CONTEXT *psContext, CS_CONNECTION *psConnection, CS_SERVERMSG *psMessage):
+	sprintf(acMsg_buff,"Server Msg from %s: %d-%d-%d: ", psMessage->svrname, psMessage->severity, psMessage->msgnumber, psMessage->state)
+	strncat(acMsg_buff,psMessage->text, psMessage->textlen)
+	acMsg_buff[iMsg_length + psMessage->textlen] = '\0'
+-------------------------------------------------------------------------------------------------
+SET FLUSHMESSAGE ON
+------------------------------------------------
+	set NOCOUNT on
+	delete  risk_common..calypso_position_age where   region = [LD|AS|NY]
+	drop index calypso_position_age.indx1
+	
+	BCP in /apps/risk/data/cal_position_age.[LD|AS|NY] into risk_common..calypso_position_age 
+	
+	set NOCOUNT on
+	create index indx1 on risk_common..calypso_position_age(cal_security_id, book_code, book_id, region)
+-----------------------------------------------
+	UPDATE	risk_common..map_ice_syn
+	SET	cusip = ci.cusip
+	FROM	risk_common..map_ice_syn mgs,
+		risk_common..calypso_instrument ci ( index nci1_calypso_instrument )
+	WHERE	mgs.security_id = ci.cusip
+-------------------------------------------------
+	select "calypso_price_overwrite = " + convert(varchar, count(*)) from risk_common..calypso_price_overwrite
+-------------------------------------------------
+	select datepart(hh,getdate())
+	
+-------------------------------------------------
+THROUGH COMMAND PROMPT:
+isql -SServiceName -Uuserid -Ppassword
+
+At the 1> prompt, query a table in the target database by entering a select statement and pressing Return.
+At the 2> prompt, enter:
+go	
+
+To exit isql, enter the following at the 1> prompt:
+exit
+	
+----------------------------------------------------------------------
+Recompiling StoredProcesures and Triggers:
+The queries used by stored procedures and triggers are optimized only once, when they are compiled. As you add indexes or make other changes to your database that affect its statistics, your compiled stored procedures and triggers may lose efficiency. By recompiling the stored procedures and triggers that act on a table, you can optimize the queries for maximum efficiency.
+
+	sp_recompile objname
+	
+sp_recompile looks for objname only in the current database and recompiles triggers and stored procedures only in the current database. sp_recompile does not affect objects in other databases that depend on the table.
+NOTE: You cannot use sp_recompile on system tables.
+
+Example:
+	sp_recompile book_control
+	Each stored procedure and trigger that uses table 'book_control' will be recompiled the next time it is executed.
+	return status = 0
+
+-----------------------------------------------------------------------	
+select * from  GRD_REPLICA..table_column where table_name = 'map_centre_code'
+=>
+table_name	column_name	primary_key	nullable	column_type
+map_centre_code	description	N	Y	S
+map_centre_code	ext_centre_code	Y	N	S
+map_centre_code	int_centre_code	Y	N	S
+map_centre_code	type_id	Y	N	S
+	---------------------------------------------------------
+
+
+set quoted_identifier OFF
+=> You cannot use SQL reserved words as identifiers if the quoted_identifier option is off.
+
+With the quoted_identifier option set to ON, Adaptive Server Enterprise allows table, view, and column names to be delimited by quotes. Other object names cannot be delimited in Adaptive Server Enterprise.
+
+
+declare @select         varchar(2000), @where_eq       varchar(4000), @alias1         varchar(32), @alias2         varchar(32)
+select  @alias1 = "t1", @alias2 = "t2"
+select @select = @select
+                        + case when (@select is null) then "" else ", " end 
+                        + hc.column_name,
+                @where_eq = @where_eq
+                        + case when (@where_eq is null) then "" else " and " end 
+                        + case when (hc.nullable = "N") 
+                                then @alias1 + "." + hc.column_name + " = " + @alias2 + "." + hc.column_name
+                                else case 
+                                        when (hc.column_type = "S")
+                                                then "isnull(" + @alias1 + "." + hc.column_name + ",'-') = isnull(" + @alias2 + "." + hc.column_name + ",'-')"
+                                        when (hc.column_type = "D")
+                                                then "isnull(" + @alias1 + "." + hc.column_name + ",'1970/1/1') = isnull(" + @alias2 + "." + hc.column_name + ",'1970/1/1')"
+                                        else "isnull(" + @alias1 + "." + hc.column_name + ",0) = isnull(" + @alias2 + "." + hc.column_name + ",0)"
+                                        end
+                        end
+        from    table_config    ht,
+                table_column    hc
+        where   ht.table_name   = hc.table_name
+        and     ht.table_name   = 'map_centre_code'
+select @select, @where_eq
+=>
+ type_id	 
+ t1.type_id = t2.type_id
+	--------------------------------------------------------------
+
+declare @select         varchar(2000), @where_eq       varchar(4000), @alias1         varchar(32), @alias2         varchar(32)
+select  @alias1 = "t1", @alias2 = "t2"
+update table_column
+set @select = @select
+                        + case when (@select is null) then "" else ", " end 
+                        + hc.column_name,
+                @where_eq = @where_eq
+                        + case when (@where_eq is null) then "" else " and " end 
+                        + case when (hc.nullable = "N") 
+                                then @alias1 + "." + hc.column_name + " = " + @alias2 + "." + hc.column_name
+                                else case 
+                                        when (hc.column_type = "S")
+                                                then "isnull(" + @alias1 + "." + hc.column_name + ",'-') = isnull(" + @alias2 + "." + hc.column_name + ",'-')"
+                                        when (hc.column_type = "D")
+                                                then "isnull(" + @alias1 + "." + hc.column_name + ",'1970/1/1') = isnull(" + @alias2 + "." + hc.column_name + ",'1970/1/1')"
+                                        else "isnull(" + @alias1 + "." + hc.column_name + ",0) = isnull(" + @alias2 + "." + hc.column_name + ",0)"
+                                        end
+                        end
+        from    table_config    ht,
+                table_column    hc
+        where   ht.table_name   = hc.table_name
+        and     ht.table_name   = 'map_centre_code'
+select @select, @where_eq
+=>
+ description, ext_centre_code, int_centre_code, type_id	 
+ isnull(t1.description,'-') = isnull(t2.description,'-') and t1.ext_centre_code = t2.ext_centre_code and t1.int_centre_code = t2.int_centre_code and t1.type_id = t2.type_id
+------------------------------------------------------------------------
+NOTE:
+Sybase unfortunately doesn't support array type. I recommend you to use temporary table instead.
+
+set nocount on
+declare @index int
+declare @names varchar(1000)
+declare @name varchar(10)
+set @names="'aa', 'bb', 'cc'"
+set @index = charindex(",", @names)
+
+while @index <> 0
+begin
+   set @name = left(@names, @index-1)
+   set @names = stuff(@names, 1, @index, null)
+   set @index = charindex(",", @names)
+   set @name = ltrim(@name)
+   set @name = substring(@name, 2, char_length(@name)-2)
+   print "Name = %1!", @name
+end
+if(isnull(@names, '') = '')
+	print "Empty name!"
+else begin
+	set @name = @names
+	print "Name = %1!", @name
+end
+=>
+Name = aa
+Name = bb
+Name = cc
+------------------------------------------------------------------------
+set nocount on
+declare @names varchar(1000)
+update users
+	set @names = @names + case when(@names is null) then "" else ", " end + trim(sybase_logon)
+	from users where valid_user = "TRUE" and sybase_logon <> 'shahath'
+print @names
+------------------------------------------------------------------------
+user-defined transaction:
+------------------------------------------------------------------------
+SET self_recursion off
+
+-------------------------------------------------------------------------
+alter table dbo.gte_instrument 
+	lock allpages
+go
+
+----------------------------------------------------------------------------
+select 'ABC',	'Jun 13 2018 12:17PM',	111,	'into test',	'xxx',	'xxx',	'into test' into debug_log
+=> SELECT INTO failed because column 1 in table 'debug_log' has a null column name. Null column names are not allowed.
+
+select * into debug_log from #debug_log where user_name = 'ABC'
+=> There is already an object named 'debug_log' in the database.
+
+select * into debug_log_1 from #debug_log where user_name = 'ABC'
+=> OK
+-----------------------------------------------------------------------------
+INTERSECT is not supported by Adaptive Server Enterprise. However, both INTERSECT ALL and INTERSECT DISTINCT can be used in the Transact-SQL dialect supported by SQL Anywhere.
+-----------------------------------------------------------------------------
+delete COMMON_DB..grd_ctrpty where current of c2:
+
+
+	declare c2 cursor for select party_id,cis_code from COMMON_DB..grd_ctrpty
+	for update
+
+	open c2
+	CHECK_ERROR(110)
+
+	fetch c2 into @o_party_id,@o_cis_code
+	while @@sqlstatus = 0 
+	begin
+		SELECT @n_party_id = party_id 
+		FROM 
+			BCP_DB..grd_ctrpty 
+		WHERE 
+			party_id = @o_party_id
+		CHECK_ERROR(115)
+
+		IF ROWS_AFFECTED = 0
+		begin
+			print 'INFO: deleting %1!,%2!',@o_cis_code,@o_party_id
+			delete COMMON_DB..grd_ctrpty where current of c2
+			CHECK_ERROR(120)
+		end
+
+		fetch c2 into @o_party_id, @o_cis_code
+	end
+
+	close c2
+	deallocate cursor c2
+
+----------------------------------------------------------------------------
+create table experiment (first char(2), second char(2))
+insert into experiment values('a', '1')
+insert into experiment values('a', '2')
+insert into experiment values('a', '3')
+insert into experiment values('b', '1')
+insert into experiment values('b', '2')
+insert into experiment values('b', '3')
+insert into experiment values('b', '4')
+insert into experiment values('c', '1')
+insert into experiment values('c', '2')
+
+Q: How can I find the set of second members which belong to each and every first member? 
+
+declare @one_count int
+select @one_count = (select count (distinct first) from experiment)
+select distinct second from experiment t1 where
+        @one_count = (select count (distinct t2.first) 
+                        from experiment t2
+                        where t2.second = t1.second)
+=> 
+1 
+2
+                        
+select distinct second from experiment T1 
+ where not exists
+      (select * from experiment T2 
+        where not exists
+             (select * from experiment 
+               where first = T2.first 
+                 and second = T1.second))
+=>
+1 
+2
+------------------------------------------------------------------------------------
+Index:
+
+#include "risk.h"
+
+use SPECIFIED_DBNAME 
+GO
+
+DROP_INDEX(cr_jurisdiction_import,uci_cr_jurisdiction_import)
+GO
+
+CREATE CLUSTERED INDEX uci_cr_jurisdiction_import ON cr_jurisdiction_import(country_code,agreement_type_code)
+GO
+
+IF EXISTS (SELECT * FROM sysindexes WHERE id=OBJECT_ID('cr_jurisdiction_import') AND name='uci_cr_jurisdiction_import')
+    PRINT '<<< CREATED INDEX cr_jurisdiction_import.uci_cr_jurisdiction_import >>>'
+ELSE
+    PRINT '<<< FAILED CREATING INDEX cr_jurisdiction_import.uci_cr_jurisdiction_import >>>'
+
+GO
+
+================================================================================
+SQL:
+	DDL
+	DML
+	DCL
+----------------------------------------------------------------------------	
+drop trigger ut_book_control_u
+drop procedure usp_gds_add_book	
+----------------------------------------------------------------------------
+Select last record in sybase:
+The way data is stored in Sybase depends on the clustered index created on the table or the identity column if you have included in the table or just a heap table. In either case the unique index or identity column will allow you to select the last most recently inserted records. For example if you use the identity column and you called it "col_id" in the table do
+
+select * from <table> where col_id >= (select max(col_id)-100 from <table>)
+
+Otherwise you can  do
+	set rowcount(100)
+	go
+and choose the first or last 100 rows depending on your clustered index.
+
+However, it is always advisable to use indexes on a table and choose records according to a certain criteria rather than just the first or last 100 rows inserted.
+
+------------------------------------------------------------------------------------
+nocount:
+
+Sometimes when we check the system stored procedures we usually find something like this written -
+	set nocount on
+	
+among the first few lines of the stored procedure and you might be wondering what this set option is trying to achieve because when we try to write stored procedures we don't seem to use this set option.
+To give the answer to this simple question we will first take your attention towards a very simple query -
+	select * from MyTAB
+where MyTAB is a dummy table with only two fields EmpId and EmpAge, both being integers. This table has currently 100 rows. Now when you execute a select on this table as shown above what do you happen to see?
+Well, we will get 100 rows from this table selected and a message 100 rows effected. Now, this is one of the messages that are usually generated  by Sybase ASE server as information to the users, which are usually ignored by most of our applications but increase unnecessary network traffic. 
+So, is there a way to remove this information messages? Yes, nocount is the set option which does the job for us. So simply turn this set option on when you dont need these information messages else turn it off.
+
+	set nocount off
+------------------------------------------------------------------------------------------
+#include 'risk.h'
+
+use SPECIFIED_DBNAME
+go
+
+declare @rowcount integer
+
+SELECT * FROM dbo.gte_product_filter WHERE product_code IN ('BB', 'BBF', 'BBI')
+SELECT @rowcount = @@ROWCOUNT
+// go NOTE: go must not be here, otherwise syntax error (Must declare variable '@rowcount'.)
+
+IF @rowcount > 0
+BEGIN
+BEGIN TRAN
+delete from dbo.gte_product_filter where product_code in ('BB', 'BBF', 'BBI')
+print "%1! records are deleted successfully.",@@ROWCOUNT
+COMMIT TRAN
+// go NOTE: go must not be here, otherwise syntax error (Incorrect syntax near the keyword 'END'.)
+END
+ELSE IF @rowcount = 0
+print "Specified product codes are not present. No records are deleted."
+go
+
+------------------------------------------------------------------
+#include "risk.h"
+
+use SPECIFIED_DBNAME 
+go
+
+ALTER TABLE cra_grading_yyyymmdd_01
+MODIFY approved_by char(40) null
+go
+
+sp_recompile cra_grading_yyyymmdd_01
+go
+-----------------------------------------------------------------------
+PROCEDURE:
+
+if exists	(select 1 from sysobjects where	name = 'xfer_trade_feed_data_ice' and type = 'P')
+begin						
+	drop procedure xfer_trade_feed_data_ice	
+end
+
+
+CREATE PROCEDURE xfer_trade_feed_data_ice
+(
+	@business_date	datetime,
+	@instance	smallint,
+	@file_id	int
+)
+with recompile
+AS
+
+declare @xxproc_name varchar(32)
+select @xxproc_name = name from sysobjects where id = @@procid
+select @xxproc_name=isnull(@xxproc_name,"SQL Batch")
+----------------------------------------------------------------------------
+CURSOR:
+
+declare @grd_legal_id udt_id
+
+declare cursor1 cursor for
+select distinct grd_legal_id 
+from sett_loan_util_detail
+where product_code = 'LNIQ'
+
+select @xxrows = @@rowcount ,@xxerror = @@error if (@xxerror != 0) begin .... end
+
+open cursor1
+
+fetch cursor1 into @grd_legal_id
+while (@@sqlstatus != 2)
+begin
+	exec usp_sett_concentration_risk_R @grd_legal_id, 0
+	select @xxrows = @@rowcount ,@xxerror = @@error if (@xxerror != 0) begin .... end
+	
+	fetch cursor1 into @grd_legal_id
+end
+
+close cursor1
+----------------------------------------------------------------------------
+PRINT 'INFO: Select data into target table [trade_feed_data]'
+
+	select	@xxrows		= 1,
+		@totalrows	= 0
+
+	set rowcount @maxrows
+
+	while @xxrows >0
+	BEGIN
+		BEGIN TRANSACTION
+			DELETE FROM BCP_DB..trade_feed_data WHERE file_id = @file_id
+			CHECK_ERROR(10)
+		COMMIT TRANSACTION
+		print "%1! rows deleted from GRD_REPLICA..trade_feed_data",@xxrows
+		select @totalrows = @totalrows + @xxrows
+
+	END
+    
+	print "%1! rows in total deleted from GRD_REPLICA..trade_feed_data",@totalrows
+
+	set rowcount 0
+------------------------------------------------------------------------
+begin transaction
+
+	set rowcount 1
+	select 	@centre_code = centre_code,
+		@default_currency = default_currency,
+		@region_date = region_date
+	from	#centres
+		
+	select @error = @@error, @count = @@rowcount
+	set rowcount 0
+	:
+	/* read in next centre */
+	set rowcount 1
+	select 	@centre_code = centre_code,
+		@default_currency = default_currency,
+		@region_date = region_date
+	from	#centres
+	
+	select @error = @@error, @count = @@rowcount
+	set rowcount 0
+	
+commit transaction	
+------------------------------------------------------------------------
+${DOSQL} <<END_SQL
+create table my_table(num int)
+insert into my_table values (2147479780)
+print "error  = %1! and rowcount  = %2!", @@error, @@rowcount
+update my_table set num = num + 5000
+print "error  = %1! and rowcount  = %2!", @@error, @@rowcount
+go
+END_SQL
+================================================================================
+Sybase provides two families of products to enable customers to write client and server application programs. They are:
+• Open Client
+• Open Server
+
+Open Client:
+Open Client provides customer applications, third-party products, and other Sybase products with the interfaces needed to communicate with Adaptive
+Server and Open Server.
+Open Client can be thought of as comprising two components, programming interfaces and network services.
+Open Client provides two core programming interfaces for writing client applications: Client-Library and DB-Library.
+
+Open Server:
+Open Server provides the tools and interfaces needed to create custom servers.
+Like Open Client, Open Server consists of an interfaces component and a network services component.
+
+Sybase lib use:
+
+Open Client Client-Library:
+Open Client Client-Library is a collection of routines you can use to write client applications. Client-Library includes routines that send commands to a server and other routines that process the results of those commands.
+Other routines set application properties, handle error conditions, and provide a variety of information about an application’s interaction with a server.
+
+CS-Library: is a collection of utility routines that you can use to write an Open Client or an Open Server application.
+CS-Library is included with Open Client.
+NOTE: All Client-Library applications include at least one call to CS-Library, because Client-Library routines use a structure that is allocated in CS-Library.
+
+libct_r.so [Client-Library (Sybase)]
+libcs_r.so [CS-Library (Sybase)]
+libtcl_r.so [transport control layer (Sybase internal)]
+libintl_r.so [internationalization support library (Sybase internal)]
+libcomn_r.so [internal shared utility library (Sybase internal)]
+libblk_r.a [Bulk-copy routines]
+
+System libraries on Solaris platforms:
+libthread [native thread library]
+libpthread [thread library]
+libsocket [socket network library]
+libnsl [a network library]
+libdl [dynamic loader library]
+
+NOTE: Client-Library supports Kerberos security features for applications that require a high level of security when communicating over a network. We need to install the Kerberos software on our system.
+
+NOTE: Client-Library is a generic interface. Through Open Server and gateway applications, Client-Library applications can run against non-Sybase applications and servers as well as Adaptive Server.
+
+Version of Open Client:
+${SYBASE} = /opt/sybase
+/opt/sybase/OCS-12_5/lib
+/opt/sybase/OCS-12_5/bin
+
+--------------------------------------------------------------------------------
+
+Client message callbacks:
+An application handles Client-Library error and informational messages inline or through a client message callback routine.
+If a client message callback is not installed for a connection or its parent context and inline message handling is not enabled, Client-Library discards message information.
+If a connection is handling Client-Library messages through a client message callback, then the callback is called whenever Client-Library generates an error or informational message.
+
+Server message callbacks:
+An application handles server errors and informational messages inline or through a server message callback routine.
+If a server message callback is not installed and inline message handling is not enabled, Client-Library discards the server message information.
+If a connection is handling server messages through a server message callback, then the callback is called whenever a server message arrives.
+--------------------------------------------------------------------------------
+ct_callback(psContext,NULL,CS_SET,CS_SERVERMSG_CB,(CS_VOID *) db_cb_CTServerMsg)
+ct_callback(psContext,NULL,CS_SET,CS_CLIENTMSG_CB,(CS_VOID *) db_cb_CTClientMsg)
+
+Open database session with the required database:
+// Initialises the signal callbacks to trap operating-system signals (segmentation faults etc) so we can give proper error          // messages.
+	static void db_cb_SignalCb(int iSignal){exit(ERREXIT);} // Callback function, called by OS when it receives a relevant signal
+	struct sigaction sSignal;
+	sSignal.sa_handler = db_cb_SignalCb;
+	sigfillset(&sSignal.sa_mask); /* mask everything */
+	sSignal.sa_flags = 0;
+	
+	sigaction(SIGHUP,&sSignal,NULL);
+	sigaction(SIGQUIT,&sSignal,NULL);
+	sigaction(SIGTRAP,&sSignal,NULL);
+	sigaction(SIGEMT,&sSignal,NULL);
+	sigaction(SIGBUS,&sSignal,NULL);
+	sigaction(SIGSYS,&sSignal,NULL);
+	sigaction(SIGPIPE,&sSignal,NULL);
+	sigaction(SIGALRM,&sSignal,NULL);
+	
+	sigaction(SIGINT,&sSignal,NULL);
+	sigaction(SIGABRT,&sSignal,NULL);
+	sigaction(SIGFPE,&sSignal,NULL);
+	sigaction(SIGILL,&sSignal,NULL);
+	sigaction(SIGSEGV,&sSignal,NULL);
+	sigaction(SIGTERM,&sSignal,NULL);
+	
+
+	SessionData *psSession_info;
+	psSession_info = calloc(1,sizeof(SessionData));
+	psSession_info->ulMagic_num = DB_MAGIC_NUM;
+	
+	static CS_CONTEXT *psContext = NULL;
+	CS_BOOL bTrue = CS_TRUE;
+	// allocate and configure context
+	cs_ctx_alloc(CS_VERSION_125,&psContext);
+	cs_config(psContext,CS_SET,CS_MESSAGE_CB, (CS_VOID *) db_cb_CSMsg,CS_UNUSED,NULL);
+	cs_config(psContext,CS_SET,CS_USERDATA, (CS_VOID *) psSession_info,sizeof(void *),NULL);
+	ct_init(psContext,CS_VERSION_125);
+	ct_config(psContext,CS_SET,CS_NO_TRUNCATE, &bTrue, CS_UNUSED,NULL);
+	ct_callback(psContext,NULL,CS_SET,CS_CLIENTMSG_CB,(CS_VOID *) db_cb_CTClientMsg);
+	ct_callback(psContext,NULL,CS_SET,CS_SERVERMSG_CB,(CS_VOID *) db_cb_CTServerMsg);
+	
+	psSession_info->psContext = psContext;
+	
+	ct_con_alloc(psSession_info->psContext, &psSession_info->psConnection);
+	ct_con_props(psSession_info->psConnection,CS_SET,CS_APPNAME, "program name",CS_NULLTERM,NULL);
+	ct_con_props(psSession_info->psConnection,CS_SET,CS_BULK_LOGIN, &bTrue, CS_UNUSED,NULL);
+	ct_con_props(psSession_info->psConnection,CS_SET,CS_USERNAME, "User ID",CS_NULLTERM,NULL);
+	ct_con_props(psSession_info->psConnection,CS_SET,CS_PASSWORD, "Password",CS_NULLTERM,NULL);
+	ct_connect(psSession_info->psConnection, "Server name", CS_NULLTERM);
+	or
+	ct_connect(psSession_info->psConnection, NULL, 0);
+	
+	// Store UserData in the connection so that callback functions can set error state
+	CS_INT *pUserMsgNumber = malloc(sizeof(CS_INT));
+	*pUserMsgNumber = 0;
+	ct_con_props(psSession_info->psConnection, CS_SET, CS_USERDATA, pUserMsgNumber, sizeof(CS_INT *), NULL);
+	
+	// initialize session results
+	CS_COMMAND *psCommand = NULL;
+	ct_cmd_alloc(psSession_data->psConnection,&psCommand);
+	ct_dynamic(psCommand,CS_EXEC_IMMEDIATE,NULL,CS_UNUSED, "use database_name",CS_NULLTERM);
+	ct_send(psCommand);
+	CS_INT iResult, iNum_rows = NULL;
+	ct_results(psCommand,&iResult));
+	if (iResult == CS_STATUS_RESULT)
+		ct_cancel(NULL, psCommand, CS_CANCEL_CURRENT);
+	else if(iResult == CS_CMD_DONE) 
+		ct_res_info(psCommand,CS_ROW_COUNT,&iNum_rows, sizeof(CS_INT),NULL);
+	// whether or not we succeeded ... cleanup
+	ct_cancel(NULL, psCommand, CS_CANCEL_ALL);
+    ct_cmd_drop(psCommand);
+	
+	// initialize Session data
+	psSession_info->psBulk = NULL;
+	psSession_info->iDate_format = DATE_DDMMMYYYY;
+	psSession_info->cSeparator = '-';
+	psSession_info->bInclude_time = FALSE;
+	psSession_info->iText_length = 100;
+	psSession_info->iImage_length = 100;
+	strcpy(psSession_info->acServerName, "Server name");
+	strcpy(psSession_info->acDbaseName, "database_name");
+	
+	
+Calling Stored Procedure:
+int *piSelectID;
+DbResult *psSelect = 
+ct_command(psSelect->psCommand, CS_RPC_CMD, "risk_common..usp_reg_main_link_updates", CS_NULLTERM, CS_UNUSED)
+ct_param(psSelect->psCommand, &sFmt, pvVoid, iData_len, bIsNull ? -1 : 0)
+ct_send(psSelect->psCommand)
+ct_results(psSelect->psCommand,&iResult)
+ct_res_info(psCommand, CS_NUMDATA, piColumns, CS_UNUSED, NULL)
+ct_describe(psCommand,iCol,&sData_fmt)
+
+ct_bind(
+ct_fetch(psSelect->psCommand, CS_UNUSED,CS_UNUSED,CS_UNUSED, &iRowsRead)
+ct_fetch(psSelect->psCommand, CS_UNUSED,CS_UNUSED,CS_UNUSED, &iRowsRead)
+ct_results(psSelect->psCommand,&iRetVal)
+
+ct_cancel(NULL, psCommand, CS_CANCEL_ALL)
+sprintf(acBuf,"id%d",iSelectID) // This identifier is defined by the application and must conform to server standards.
+ct_dynamic(psCommand, CS_DEALLOC, acBuf, CS_NULLTERM, NULL, CS_UNUSED)
+
+Closing database session:
+	if(psSession_info->ulMagic_num != DB_MAGIC_NUM) // DB_MAGIC_NUM == 78912345
+		return ERR_INVALID_SESSION_DATA;
+	// Resets all the selects for the current session.
+	for (int iSelect = 0; iSelect < TASSessionID->iNum_results_alloc; iSelect++){
+		if (TASSessionID->psResults[iSelect].eType != RT_UNUSED){
+			if (TASSessionID->psResults[iSelect].eType == RT_CURSOR_SELECT){ // it's a cursor
+				DbResult *psCursor = &TASSessionID->psResults[iSelect];
+				if (psCursor->psCommand){
+					// get rid of any pending results
+					ct_cancel(NULL,psCursor->psCommand,CS_CANCEL_CURRENT);
+					CS_INT iResType, iCurStat = 0;
+					while (ct_results(psCursor->psCommand, &iResType) == CS_SUCCEED){
+						ct_cancel(NULL,psCursor->psCommand,CS_CANCEL_CURRENT);
+					}
+					ct_cmd_props(psCursor->psCommand,CS_GET,CS_CUR_STATUS,&iCurStat, CS_UNUSED,NULL)
+					if (iCurStat & CS_CURSTAT_OPEN){
+						ct_cursor(psCursor->psCommand,CS_CURSOR_CLOSE,NULL, CS_UNUSED,NULL,CS_UNUSED,CS_DEALLOC);
+						ct_send(psCursor->psCommand);
+						// get rid of results from this command
+						while (ct_results(psCursor->psCommand, &iResType) == CS_SUCCEED);
+					}
+					else if (iCurStat & CS_CURSTAT_CLOSED){
+						ct_cursor(psCursor->psCommand,CS_CURSOR_DEALLOC,NULL, CS_UNUSED,NULL,CS_UNUSED,CS_UNUSED);
+						ct_send(psCursor->psCommand);
+						// get rid of results from this command
+						while (ct_results(psCursor->psCommand, &iResType) == CS_SUCCEED);
+					}
+					// clean-up
+					ct_cancel(NULL,psCursor->psCommand,CS_CANCEL_ALL);
+					ct_cmd_drop(psCursor->psCommand);
+					psCursor->psCommand = NULL;
+				}
+			}
+			DbResult *psSelect = &TASSessionID->psResults[iSelect];
+			// db_data_ClearResult()
+		}
+	}
+------------------------------------------------------------
+
+ct_bcp( psSession, ppsDbProc, pcDbase, pcTable, pcDataFile, -1, -1, pcFormatFile, piNumRows ): [ct_lib.c]
+	select substring(table_name,2+charindex('..',table_name),80), format_file from [psSession->acDbaseName]..script_map where script_name = '[pcTable]'
+	:
+------------------------------------------------------------
+ct_fetch()
+ct_results()	
+================================================================================
