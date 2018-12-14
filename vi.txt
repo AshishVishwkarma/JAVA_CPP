@@ -1,0 +1,41 @@
+Running UNIX shell commands from vi
+-----------------------------------
+
+You can run UNIX commands and see their output without leaving vi. You can also insert the output of a UNIX command into the file you that are editing.
+
+To run a single UNIX command use the command:
+   :!UNIX_command
+
+You can start a shell from within vi and use it as you would your usual UNIX environment, then exit the shell and return to vi
+
+To start up a shell enter the command:
+   :sh
+The type of shell that is started is determined by the $SHELL variable. You can specify that some other shell is to be started by setting the vi shell option
+
+Return to using vi by entering the command exit or Ctrl-D
+
+To insert the output from a UNIX command into a file, immediately after the cursor:
+   :r!command
+For example, this facility would be very useful if you were using vi to document a UNIX command and you wanted to include examples of the output from this command.
+
+To comment multiple lines:
+<ESC> + Move cursor to the line set for the beginning of the comment
+<NO>!!awk '{print "\#",$0}'
+Here, <NO> = no of lines to be commented out
+
+To comment out all lines in a file:
+<:>%s/^/#/g
+
+Exit from insert mode in ex:
+Enter a line containing a simple dot . or hit CTRL-c
+NOTE: :insert will keep asking for lines until you type a line only containing '.'. For more help see :h :i
+
+To delete range of lines:
+
+--------------------------------------------------
+vi from outside:
+
+To delete range of lines:
+vi + <start_ln>,<end_ln> + wq <file_name>
+
+
