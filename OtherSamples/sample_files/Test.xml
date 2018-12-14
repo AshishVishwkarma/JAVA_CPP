@@ -1,0 +1,34 @@
+<?xml version='1.0'?>
+	<employees>
+		<employee>
+			<name>John Doe</name>
+			<name>John Marak</name>
+			<age>43</age>
+			<sex>M</sex>
+			<department>Operations</department>
+		</employee>
+		<employee>
+			<name>Jane Doe</name>
+			<age>31</age>
+			<sex>F</sex>
+			<department>Accounts</department>
+			<name>Jane Marak</name>
+		</employee>
+		<employee>
+			<name>Be Goode</name>
+			<age>32</age>
+			<sex>M</sex>
+			<department>Human Resources</department>
+		</employee>
+		<employee>
+			<name>John Doe</name>
+			<age>53</age>
+			<sex>M</sex>
+			<department>Human Resources</department>
+		</employee>
+		<department>
+			<address>Infospace</address>
+			<noofemps>50</noofemps>
+			<headquarter>London</headquarter>
+		</department>
+	</employees>

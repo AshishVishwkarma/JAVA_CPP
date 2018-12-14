@@ -1,0 +1,1 @@
+my.property.message=Hi! This is just for test.
