@@ -25,6 +25,18 @@ Global Credit Enquiry and Monitoring System:
 	· Fixed Income
 
 	Part of the Pre-processing phase involves linking (also known as mapping) of entities in the feed and the entities in the system. Entities that fail mapping are stored in the failed trades are for mandatory mappings. Non-mandatory mappings are associated to types of "miscellaneous". Generic trade, profile and attribute files are produced, and are BCPed (Bulk Copy Process) into their relevant tables. A Reconciliation (REC) phase is conducted to find new trades by area (MM, Risk MI, etc.). The REC process may user database Cursors to iterate through the database, and may be extremely inefficient. The 'feed trades table' is differenced to 'system trades table' to determine the New, Amended and Unchanged trades. These trades are input into a Trade Processor, which eventually stores the successful candidates into the live Trade tables within the system.
+	
+	Key features of the system:
+	- Global cross product Credit Risk Monitoring system.
+	- It provides netted and profiled credit exposures aggregated at a counterparty, currency pair level for all of FM's products.
+	- Monitors intraday risk, supplies availability information to Front Office systems, supports Credit Admin Unit on a day to day basis.
+	- EOD Environment supports Finance Regulatory Reporting.
+	- System is available on a 7x24 hour basis.
+	- It ensures that FM is not exposed to any excessive or unauthorised credit risk while dealing in the FX, Currency Options, Swaps & FRAs, Fixed Income and Money Markets.
+	- It permits the assessment of credit risk to be carried out globally and on an intraday basis. Deals entered in one site (for example Hong Kong) feed through to the System Server (located in London). When a trader in New York makes an enquiry on a counterparty, the System server sends details of the amounts available under the current credit limits taking into account the deal made in Hong Kong.
+	- Its users are located in various centres, and takes multiple feeds
+	
+	
 
 	Aggregation Process:
 	Aggregation comprises the summation of individual trade profiles by:
@@ -46,9 +58,87 @@ Front Office activities:
 	Trade Overwrites:
 	Linking of the Trades:
 	
+GDS:
+	Global Derivatives System, GDS is an application that provides a full life-cycle derivatives trading system covering front office, trading and back-office settlement functions. It encompasses trade, market and static data, and provides official risk and pnl for disparate downstream systems and user groups.
+	It is a trade booking store where all the trades are booked and sends the feeds to FM. FM receives the feeds from both GDS and FIRE, consolidates and sends it to down-streams.
+	=>
+	Global Derivatives System. GDS is an application that encompasses trade, market and static data, and provides official risk and pnl for disparate downstream systems and user groups.
+
+	Live trades in the active portfolios are submitted in the batch. These trades are of two types.
+		Validated - OTC(Over the Counter Trades)
+		Inventoried - ETI\SHARED(Exchange Trades)
+
+	MTM & CRE are calculated based on the values of gbp_credit_mtm and gbp_cre in GDS*.crd (credit).
+	
+	CLU is calculated based on the value of MAX of credit_mtm_up_shift, credit_mtm_zero_shift, credit_mtm_down_shift in GDS*.mtm (profile).
+	
+	Logic for gbp_clu calculation:
+	- Use calculated clu from the table risk_common..trade_overwrite, if not found then
+	- Use calculated clu from *.mtm file, if not found then
+	- Use calculated clu from *.crd file.
+	
+	NOTE: In case of synthetic records, we do not calculate clu, mtm, amount for Issuer Risk.
+
+	There is no null pointer exception if we pass clu, clu_up, clu_down, clu_ccy fields as blank in *.crd file.
+	Blank values in the fields clu, clu_up, and clu_down are allowed.
+	Proper value in the clu_ccy field is mandatory. The clu_ccy is used to get the GBP spot rate.
+	NOTE: Unavailability of GBP spot rate is considered as failure by the System.
+	If clu field is blank, it is considered to be 0.000000.
+	clu_up and clu_down fields are ignored. These fields could safely be left as blank).
+	The calculated clu is passed as gbp_clu (36th field) in the *_trades.tsv.
+
+	accrued_interest (28th fields in *.bk_acc) is used to calculate the accrued interest in ccy and gbp.
+	These values are passed in SB*_attributes.tsv under attribute types "ACCINTCCY" and "ACCINTGBP" respectively.
+	accrued_interest field in *.bk_acc is allowed to be left as blank. In this case, it is considered to be 0.000000.
+	Followed fields Cash, Pv, Accrual Start Date, Accrual End Date, Days to Accrue, Accrued Fee, and Accrual of back end premium are ignored. These fields could safely be left as blank.
+	
+Overwrite feeds:
+	Overwrite involves amendments of MTMs for the trades already loaded in the system.
+	For each row of data in the field, the value of deal ticket number and Book id serve as identifiers or the keys.
+	NOTE: only those records are processed where the identifier values match the values in the table.
+
+	In case of GDS, every row contains information about "PRIME BOOK" (which is a non phoenix book).In order to obtain the gds book corresponding to this prime book we query prime_gds_map table , which maintains a mapping of gdsBooks for each prime book 
+
+GDS Feeds per portfolio (book id):	
+	bcl = Break Clause Records
+	bk_acc = Accrued Interest Records
+	bnd = Bond Positions
+	cf = Cash Flow
+	crd =  Credit Utilisation/Reserve
+	dsch = Option Date Schedules
+	fmtm = Finance Profiles
+	fsch = Fixing Date Schedules
+	mtm = Profiles
+	mtm_new = 14 Shift Profiles
+	ofl = Offlegs
+	onl = Legs ""on"" balance sheet
+	      On Balance Components (Coupons)
+	pri = Principle Exchanges
+	syn = Synthetic
+	tde = Trades
+	ndod = Day on Day information
+	edod = Euro Day on Day information
+	fdn = Futures Definition
+	fpn = Futures Positions
+	lnk = Linked Deals
+	pos = Bond Positions
+	msc = Miscellaneous TDB stuff
+	dat = Cashflow feed for local markets portfolios only
+	bsk = New feed with CDO tranche and Nth default trade info GDS-2406
+
+GDLNDDNPP.dat = misfit
+
+
+	
+DSL Netting:
+	The DSL netting is applied as per the trade's fx_net_indicator, which is initially set by table risk_common..fx_net_branch only.
+	Not any logic was found in code where all branch cis are included automatically under any main cis code for DSL netting purpose; so it seems like DSL netting should be applied one by one for each branch code, only main cis code's entry might not be sufficient to make all branches under it dsl nettable.
+	DSL netting is applied on Our-side Branch (centre_code) and Counter-party Branch (branch_cis) and is defined in table risk_common..fx_net_branch.
+
 
 Key terms:
----------	
+---------
+Finance Regulatory Reporting	
 Exposures:
 Credit:
 	Credit is a contractual agreement in which a borrower receives something of value now and agrees to repay the lender at some later date with consideration, generally with interest.
@@ -72,9 +162,6 @@ Credit Limit:
 CLU (Credit Limit Utilisation):
 
 
-
-
-
 Credit ratings:
 	A credit rating is an assessment of the creditworthiness of a borrower in general terms or with respect to a particular debt or financial obligation. A credit rating can be assigned to any entity that seeks to borrow money — an individual, corporation, state or provincial authority, or sovereign government.
 	Credit assessment and evaluation for companies and governments is generally done by a credit rating agency such as Standard & Poor’s (S&P), Moody’s, or Fitch. These rating agencies are paid by the entity that is seeking a credit rating for itself or for one of its debt issues.
@@ -88,6 +175,9 @@ Credit Score:
 	A credit score is a statistical number that evaluates a consumer's creditworthiness and is based on credit history. Lenders use credit scores to evaluate the probability that an individual will repay his or her debts. A person's credit score ranges from 300 to 850, and the higher the score, the more financially trustworthy a person is considered to be.
 	Credit scores are derived from the credit history maintained by credit-reporting agencies such as Equifax, Experian, and TransUnion.
 	Credit bureaus in India: CIBIL, Equifax, Crisil Limited, ICRA Limited, Experian
+	
+Credit Risk:
+Market Risk:
 
 Reval Rates (Revaluation Rates):
 	Revaluation rates are market currency rates from a specific point in time that are used as a base value by currency traders to assess whether a profit or a loss has been realized for the day. In most cases, the revaluation rate is the closing rate for the previous trading day.
@@ -129,6 +219,18 @@ Credit profile:
 Types of trades:
 	FX Trades (FX)
 	Fixed Income (FI)
+		Loan
+			REPO Loan
+			Security Loan
+			Loan Depo
+		Collateral
+			REPO Collateral
+			Security Collateral
+			Collateral Movement
+		Security
+		FX
+		FX Swap Near Leg
+		FX Swap Far Leg
 	Exotic Options (ECO)
 	Vanilla Options (CO)(Pabulum)
 	Greenwich Bonds
@@ -140,3 +242,66 @@ Types of trades:
 Global financial market:
 	
 Equity Index:
+
+Exotic rate:
+
+Profit and Loss Statement (P&L):
+	•Core Deal PnL
+	•Core PnL
+	•Deal PnL
+	•HedgePnL
+	•Risk PnL
+	•Sales PnL
+	•Total PnL
+	•Transit PnL
+
+	UnRealised PnL:
+		Is the PnL that the trader would have if they had to close out their books at current market prices. Its volatile as its based on rapidly changing prices
+	
+	Realised PnL:
+		This is the PnL got from trading a position back towards zero.
+
+Present Value:
+Principle Overwrite:
+Notional Overwrites:
+		
+opening Bid/ask
+Inflation, Options and Swaps.
+cusip
+CIS code
+mtm
+cre
+clu
+
+
+Abbreviation:
+CLU = credit limit utilization = 
+COB = Close of Business Day = 
+CP = Closing Price = 
+CRE = Credit Reserve = 
+ECO = Exotic Currency Options = 
+EMS = Enterprise Message Service = 
+EOD = End of Business Day = 
+FM = FeedManager = 
+GBM =  = 
+GDS = Global Derivatives System = 
+GRS = Global Risk System = 
+HISP = High-yield Investment Synthetic Position = 
+HTSP = High-yield Trading Synthetic Position = 
+ins = instrument = 
+ICE = Intercontinental Exchange = 
+MTM = Mark to market  = 
+NPV = Net Present Value = 
+ODC = Operational Data Centre  = 
+OTC = Over the Counter = 
+pid =  (Profile Identifier) = 
+PIR = Phoenix Issuer Risk = An Issuer Risk measurement and reporting system used for predeal checking, limit utilisation and excess management 
+PnL = Profit & Loss = 
+PV = Present Value = 
+SDM =  = book_control data 
+		 Trading party data
+SDS =  = netting data
+SISP = Standard Investment Synthetic Position = 
+SSI = Settlement Instructions = 
+STSP = Standard Trading Synthetic Position = 
+TCP = Trading Counterparties = 
