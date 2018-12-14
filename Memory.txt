@@ -1,0 +1,386 @@
+Byte Buffers and Non-Heap Memory:
+---------------------------------
+Most Java programs spend their time working with objects on the JVM heap, using getter and setter methods to retrieve or change the data in those objects. A few programs, however, need to do something different. Perhaps they're exchanging data with a program written in C. Or they need to manage large chunks of data without the risk of garbage collection pauses. Or maybe they need efficient random access to files. For all these programs, a java.nio.ByteBuffer is an alternative to traditional Java objects.
+
+Prologue: The Organization of Objects:
+Let's start by comparing two class definitions. The one on the left is C++, the one on the right is Java. They both declare the same member variables, with (mostly) the same types, but there's an important difference: 
+	the C++ class describes the layout of a block of memory, the Java class doesn't.
+
+C++ class:
+	class TCP_Header
+	{
+		unsigned short  sourcePort;
+		unsigned short  destPort;
+		unsigned int    seqNum;
+		unsigned int    ackNum;
+		unsigned short  flags;
+		unsigned short  windowSize;
+		unsigned short  checksum;
+		unsigned short  urgentPtr;
+		char            data[1];
+	};
+	
+Java class:
+	public class TcpHeader
+	{
+		private short   sourcePort;
+		private short   destPort;
+		private int     seqNum;
+		private int     ackNum;
+		private short   flags;
+		private short   windowSize;
+		private short   checksum;
+		private short   urgentPtr;
+		private byte[]  data;
+	}
+	
+C++, like C before it, is a systems programming language. That means that it will be used to directly access objects like network protocol buffers, which are defined in terms of byte offsets from a base address. One way to do this is with pointer arithmetic and casts, but that's error-prone. Instead, C (and C++) allows you to use a structure or class definition as a “view” on arbitrary memory. You can take any pointer, cast it as a pointer-to-structure, and then access that memory using code like p->seqNum; the compiler does the pointer arithmetic for you.
+
+NOTE: A C compiler may insert “padding” into the memory layout of a struct to maximize the efficiency of access for a particular architecture. For example, some processors can't address individual bytes, or do so much more slowly than when addressing on a word boundary. Every compiler that I've used has invocation flags and/or pragmas that control this behavior, so I'm sticking with my use of the word “allows.”
+
+In a real C++ program, of course, you'd define such structures using the fixed-width types from stdint.h; the int on one system may not be the same size as the int on another (I got to experience this first-hand as processors moved from 16 to 32 bits, and the experience scarred me for life). Java is better than C++ in this respect: an int is defined to be 32 bits, and a short is defined to be 16 bits, regardless of the processor on which your program is running.
+
+However, Java comes with its own data access caveats. Foremost among them is that the in-memory layout of instance data is explicitly not defined. Code like obj.seqNum does not translate to pointer arithmetic, it translates to the bytecode operations getfield and putfield (depending on which side of an assignment it appears). These operations are responsible for finding the particular field within the object and converting it (if necessary) to fit the fixed-width JVM stack.
+
+By giving the JVM the flexibility to arrange its objects' fields as it sees fit, different implementations can make the most efficient use of their hardware. For example, on a machine that only allows access to memory in 32-bit increments, and an object that has several byte fields, the JVM is allowed to re-arrange those fields and combine them into a contiguous 32-bit word, then use shifts and masks to extract the data for use.
+
+ByteBuffer:
+-----------
+The fact that Java objects may be laid out differently than defined is irrelevant to most programmers. Since a Java class cannot be used as a view on arbitrary memory, you'll never notice if the JVM has decided to shuffle its members. However, there are situations where it would be nice to have this ability; there is a lot of structured binary data in the the real world. Prior to JDK 1.4, Java programmers had limited options: they could read data into a byte[] and use explicit offsets (along with bitwise operators) to combine those bytes into larger entities. Or they could wrap that byte[] in a DataInputStream and get automatic conversion without random access.
+
+The ByteBuffer class arrived in JDK 1.4 as part of the java.nio package, and combines larger-than-byte data operations with random access. A ByteBuffer can be created in one of two ways: by wrapping an existing byte array or by letting the implementation allocate its own underlying array. Most of the time, you'll want to do the former:
+
+	byte[] data = new byte[16];
+	ByteBuffer buf = ByteBuffer.wrap(data);
+
+	buf.putShort(0, (short)0x1234);
+	buf.putInt(2, 0x12345678);
+	buf.putLong(8, 0x1122334455667788L);
+
+	for (int ii = 0 ; ii < data.length ; ii++)
+		System.console().printf("index %2d = %02x\n", ii, data[ii]);
+
+When working with a ByteBuffer, it's important to keep track of your indices. In the code, above, we wrote a two-byte value at index 0, and a four-byte value at index 2; what happens if we try to read a four-byte value at index 0?
+
+	System.console().printf( "retrieving value from wrong index = %04x\n", buf.getInt(0));
+
+The best way to ensure that you're always using the correct indices is to create a class that wraps the actual buffer and provides bean-style setters and getters. Taking the TCP header as an example:
+
+	public class TcpHeaderWrapper
+	{
+		ByteBuffer buf;
+		
+		public TcpHeaderWrapper(byte[] data)
+		{
+			buf = ByteBuffer.wrap(data);
+		}
+		
+		public short getSourcePort()
+		{
+			return buf.getShort(0);
+		}
+		
+		public void setSourcePort(short value)
+		{
+			buf.putShort(0, value);
+		}
+		
+		public short getDestPort()
+		{
+			return buf.getShort(2);
+		}
+
+		// and so on
+
+
+Slicing a ByteBuffer:
+---------------------
+Continuing with the TCP example, let's consider the actual content of the TCP packet, an arbitrary length array of bytes that follows the fixed header fields. The C++ version defines data, a single-element array. This is an idiomatic usage of C-style arrays, relying on the fact that the compiler treats an array name as a pointer to the first element of the array, and will emit code to access elements of the array without bounds checks. In Java, of course, arrays are first-class objects, and an array member variable holds a pointer to the actual data.
+
+NOTE: Apparently the very earliest implementations of C also accessed arrays using double-indirection, but Dennis Ritchie decided that the “array variable is pointer” approach made for a more natural programming style. 
+[ For details: https://www.bell-labs.com/usr/dmr/www/chist.html ]
+
+There are two ways that you can extract an arbitrary byte array from a buffer. The first is to use the get() method to copy bytes into an array that you pre-allocate:
+
+	public byte[] getData()
+	{
+		buf.position(getDataOffset());
+		int size = buf.remaining();
+		byte[] data = new byte[size];
+		buf.get(data);
+		return data;
+	}
+
+However, this is often the wrong approach, because you don't really want the array; you want to do something with the array, such as write it to an OutputStream or treat it as a sub-structure. In these cases, it's better to create a new buffer that represents a subsection of the old, which you can do with the slice() method:
+
+	public ByteBuffer getDataAsBuffer()
+	{
+		buf.position(getDataOffset());
+		return buf.slice();
+	}
+
+If you looked closely, you may have noticed that the last two code snippets both called position(), while in early examples I passed in an explicit offset. Most ByteBuffer methods have two forms: one that takes an explicit position, for random access, and one that doesn't, used to read the buffer sequentially. I find little use for the latter, but when working with byte[] you have no choice: there aren't any methods that support random access.
+
+REMEMBER: when you call slice() the new buffer shares the same backing store as the old. Any changes that you make in one buffer will appear in the other. If you don't want that to happen, you need to use get(), which copies the data.
+
+Beware Endianness:
+------------------
+In Gulliver's Travels, the two societies of Lilliputians break their eggs from different ends, and that minor difference has led to eternal strife. Computer architectures suffer from a similar strife, based on the way that multi-byte values (eg, 32-bit integers) are stored in memory. “Little-endian” machines, such as the PDP-11, 8080, and 80x86 store low-order bytes first in memory: the integer value 0x12345678 is stored in the successive bytes 0x78, 0x56, 0x34, and 0x12. “Big-endian” machines, like the Motorola 68000 and Sun SPARC, put the high-order bytes first: 0x12345678 is stored as 0x12, 0x34, 0x56, and 0x78.
+
+Java manages data in Big-Endian form. 
+However, most Java programs run on Intel processors, which are Little-Endian. This can cause a lot of problems if you're trying to exchange data between a Java program and a C or C++ program running on the same machine. For example, here's a C program that writes a 4-byte signed integer to a file:
+
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+
+	int main(int argc, char** argv) 
+	{
+		int fd = creat("/tmp/example.dat", 0777);
+		if (fd < 0)
+		{
+			perror("unable to create file");
+			return(1);
+		}
+		
+		int value = 0x12345678;
+		write(fd, &value, sizeof(value));
+
+		close(fd);
+		return (0);
+	}
+
+On a Linux system, you can use the od command to dump the file's content:
+	~, 524> od -tx1 /tmp/example.dat
+	0000000 78 56 34 12
+	0000004
+
+When you write a naive Java program to retrieve that data, you see the wrong data.
+
+	byte[] data = new byte[4];
+	FileInputStream in = new FileInputStream("/tmp/example.dat");
+	if (in.read(data) < 4)
+		throw new Exception("unable to read file contents");
+
+	ByteBuffer buf = ByteBuffer.wrap(data);
+	System.console().printf("data = %x\n", buf.getInt(0));
+	If you want to see the correct data, you must explicitly tell the buffer that it's Little-Endian:
+
+	buf.order(ByteOrder.LITTLE_ENDIAN);
+	System.console().printf("data = %x\n", buf.getInt(0));
+
+How do you know that the data is Little-Endian? 
+One common solution is to start files with a “magic number” that indicates the byte order. 
+For example, UTF-16 files begin with the value 0xFEFF: a reader can look at those two bytes, and select Big-Endian conversion if they're in the order 0xFE 0xFF, or Little-Endian if they're in the order 0xFF 0xFE.
+
+An alternative is to specify the ordering, and require writers to follow that specification. For example, the set of protocols collectively known as TCP/IP all use Big-Endian ordering, while the GIF graphics file format uses Little-Endian.
+
+------------------------------------------------------------------------------------------------------
+Interlude: A Short Tour of Virtual Memory:
+------------------------------------------
+ByteBuffer isn't just used to retrieve structured data from a byte[]. It also allows you to create and work with memory outside of the Java heap, including memory-mapped files. This latter feature is a great way to work with large amounts of structured data, as it lets you leverage the operating system's memory manager to move data in and out of memory in a way that's transparent to your program.
+
+A program running on a modern operating system thinks that it has a large, contiguous allotment of memory: 2 gigabytes in the case of 32-bit editions of Windows and Linux, 8 terabytes or more for x64 editions (limited both by the operating system and the hardware itself). Behind the scenes, the operating system maintains a “page table” that identifies where in physical memory (or disk) the data for a given virtual address resides.
+
+How the JVM uses virtual memory: it assigns space for the Java heap, per-thread stacks, shared native libraries including the JVM itself, and memory-mapped files (primarily JAR files). On Linux, the program pmap will show you the virtual address space of a running process, divided into segments of different sizes, with different access permissions.
+
+In thinking about virtual memory, there are two concepts that every programmer should understand: 
+- resident set size and 
+- commit charge. 
+The second is easiest to explain: it's the total amount of memory that your program might be able to modify (ie, it excludes read-only memory-mapped files and program code). The potential commit charge for an entire system is the sum of RAM and swap space, and no program can exceed this. It doesn't matter how big your virtual address space is: if you have 2G of RAM, and 2G of swap, you can never work with more than 4G of in-memory data; there's no place to store it.
+
+In practice, no one program can reach that maximum commit charge either, because there are always other programs running, and they have their own claims upon memory. If you try to allocate memory that would exceed the available commit charge, you will get an OutOfMemoryError.
+
+The second concept, resident set size (RSS), refers to how many of your program's virtual pages are currently residing in RAM. If a page isn't in RAM, then it needs to be read from disk — faulted into RAM — before your program can access it. The important thing to know about RSS is that you have very little control over it. The operating system tries to minimize the number of system-wide page faults, typically by managing RSS on the basis of time and access frequency: pages that are infrequently accessed get swapped out, making room for pages that are actively accessed. RSS is one reason that “full” garbage collections can take a long time: when the GC compacts the heap it will touch nearly every page in the heap; pages that are filled with garbage may be faulted-in at this time (smart Swing programmers know this, and explicitly trigger GC before being minimized, in order to prevent page faults when they're maximized again).
+
+One final concept: pages in the resident set can be “dirty,” meaning that the program has changed their content. A dirty page must be written to swap space before its physical memory can be used by another page. By comparison, a clean (unmodified) page may simply be discarded; it will be reloaded from disk when needed. If you can guarantee that a page will never be modified, it doesn't count against a program's commit charge — we'll return to this topic when discussing memory-mapped files.
+
+Direct ByteBuffers:
+------------------
+There are three ways to create a ByteBuffer: wrap(), which you've already seen, allocate(), which will create the underlying byte array for you, and allocateDirect(). The API docs for this last method are somewhat vague on exactly where the buffer will be allocated, stating only that “the Java virtual machine will make a best effort to perform native I/O operations directly upon it,” and that they “may reside outside of the normal garbage-collected heap.” In practice, direct buffers always live outside of the garbage-collected heap.
+
+As a resuilt, you can store data in a direct buffer without paying the price (ie, pauses) of automatic garbage collection. However, doing so comes with its own costs: you're storing data, not objects, so will have to implement you own mechanism for storing, retrieving, and updating that data. And if the data has a limited lifetime, you will have to implement your own mechanisms for garbage collection.
+
+If you consider the origin of byte buffers as part of the NIO (“New IO”) package, you might also find a use for direct buffers in IO: you can read from one channel and write to another without ever moving the data onto the heap. I personally think this is less useful than it first appears: in my experience there aren't many cases where you'll write a Java program that simply moves data without manipulating it in some way (a web-app that serve static content being one of the few examples, but how often do you write one of those?).
+NOTE: One use case is an off-heap cache, such as BigMemory. Another is a high-performance ring buffer, such as the LMAX Disrutor.
+
+Direct buffers are useful in a program that mixes Java and native libraries: JNI provides methods to access the physical memory behind a direct buffer, and to allocate new buffers at known locations. Since this technique has a limited audience, it's outside of the scope of this article. If you're interested, I link to an example program at the end.
+
+Mapped Files:
+-------------
+While I don't see much reason to use direct buffers in a pure Java program, they're the foundation for mapping files into the virtual address space — a feature that is rarely used, but invaluable when you need it. Mapping a file gives you random access with — depending on your access patterns — a significant performance boost. To understand why, we'll need to take a short detour into the way that Java file I/O works.
+
+The first thing to understand is that the Java file classes are simply wrappers around native file operations. When you call read() from a Java program, you invoke the POSIX system call with the same name (at least on Solaris/Linux; I'll assume Windows as well). When the OS is asked to read data, it first looks into its cache of disk buffers, to see if you've recently read data from the same disk block. If the data is there, the call can return immediately. If not, the OS will initiate a disk read, and suspend your program until the data is available.
+
+The key point here is that “immediately” does not mean “quickly”: you're invoking the operating system kernel to do the read, which means that the computer has to perform a “context switch” from application mode to kernel mode. To make this switch, it will save the CPU registers and page table for your application, and load the registers and page table for the kernel; when the kernel call is done, the reverse happens. This is a matter of a few microseconds, but those add up if you're constantly accessing a file. At worst, the OS schedule will decide that your program has had the CPU for long enough, and suspend it while another program runs.
+
+With a memory-mapped file, by comparison, there's no need to invoke the OS unless the data isn't already in memory. And since the amount of RAM devoted to programs is larger than that devoted to disk buffers, the data is far more likely to be in memory.
+
+Of course, whether or not your data is in memory depends on many things. Foremost is whether you're accessing the data sequentially: there's no point to replacing a FileInputStream with a mapped buffer, even though the JDK allows it, because you'll be constantly waiting for pages to load from disk
+
+The second important question is how big your file is, and how randomly you access it. If you have a multi-gigabyte file and bounce from one spot to another, then you'll constantly wait for pages to be read from disk. But most programs don't access their data in a truly random manner. Typically there's one group of blocks that are hit far more frequently than others, and these will remain in RAM. For example, a database server reads the root node of an index on almost every query, while individual data blocks are accessed far less frequently.
+
+Even if you don't gain a speed benefit from memory-mapping your files, you may gain a maintenance benefit by accessing them via a bean-style wrapper class. This will also improve testability, as you can construct buffers around known test data, without any files involved.
+
+Creating the Mapping:
+---------------------
+Creating a mapped file is a multi-step process, starting with a RandomAccessFile (you can also start with a FileInputStream or FileOutptStream, but there's no point to doing so). From there, you create a FileChannel, and then you call map() on that channel. It's easier to code than to describe:
+
+	File file = new File("/tmp/example.dat");
+	FileChannel channel = new RandomAccessFile(file, "r").getChannel();
+
+	ByteBuffer buf = channel.map(MapMode.READ_ONLY, 0L, file.length());
+	buf.order(ByteOrder.LITTLE_ENDIAN);
+
+	System.console().printf("data = %x", buf.getInt(0));
+
+Although I assign the return value from map() to a ByteBuffer variable, it's actually a MappedByteBuffer. Most of the time there's no reason to differentiate, but the latter class has two methods that some programs may find useful: load() and force().
+
+The load() method will attempt to load all of the file's data into RAM, trading an increase in startup time for a potential decrease in page faults later. I think this is a form of premature optimization. Unless your program constantly accesses those pages, the operating system may choose to use them for something else, meaning that you'll have to fault them in anyway. Let the OS do its job, and load pages as needed from disk.
+
+The second method, force(), deserves its own section.
+
+Read-Only versus Read-Write Mappings:
+-------------------------------------
+You'll note that I created the RandomAccessFile in read-only mode (by passing the flag r to its constructor), and also mapped the channel in read-only mode. This will prevent accidental writes, but more importantly, it means that the file won't count against the program's commit charge. On a 64-bit machine, you can map terabytes of read-only files. And in most cases, you don't need write access: you have a large dataset that you want to process, and don't want to keep reading chunks of it into heap memory.
+
+Read-write files require some more thought. The first thing to consider is just how important your writes are. As I noted above, the memory manager doesn't want to constantly write dirty pages to disk. Which means that your changes may remain in memory, unwritten, for a very long time — which will become a problem if the power goes out. To flush dirty pages to disk, call the buffer's force() method.
+
+	buf.putInt(0, 0x87654321);
+	buf.force();
+
+Those two lines of code are actually an anti-pattern: you don't want to flush dirty pages after every write, or you'll make your program IO-bound. Instead, take a lesson from database developers, and group your changes into atomic units (or better, if you're planning on a lot of updates, use a real database).
+
+NOTE: Few programmers think about what happens to their files when the power goes out. Those that do typically stop thinking once they've called flush(). However, even if you've flushed the writes out of the operating system and into the disk drive, they may not have found their way to the disk platter: disk drives generally have an on-drive RAM buffer, and blocks live in that buffer until the drive can write them to the physical disk — or the power goes out. You can typically tweak the drive's settings via the OS (not Java), so if you absolutely, positively must ensure writes, you should learn how your particular drives work.
+
+Mapping Files Bigger than 2 GB:
+-------------------------------
+Depending on your filesystem, you can create files larger than 2GB. But if you look at the ByteBuffer documentation, you'll see that it uses an int for all indexes, which means that buffers are limited to 2GB. Which in turn means that you need to create multiple buffers to work with large files.
+
+One solution is to create those buffers as needed. The same underlying FileChannel can support as many buffers as you can create, limited only by the OS and available virtual memory; simply pass a different starting offset each time. The problem with this approach is that creating a mapping is expensive, because it's a kernel call (and you're using mapped files to avoid kernel calls). In addition, a page table full of mappings will mean more expensive context switches. As a result, as-needed buffers aren't a good approach unless you can divide the file into large chunks that are processed as a unit.
+
+A better approach is to create a “super buffer” that maps the entire file and presents an API that uses long offsets. Internally, it maintains an array of mappings with a known size, so that you can easily translate the original index into a buffer and an offset within that buffer:
+
+	public int getInt(long index)
+	{
+		return buffer(index).getInt();
+	}
+
+	private ByteBuffer buffer(long index)
+	{
+		ByteBuffer buf = _buffers[(int)(index / _segmentSize)];
+		buf.position((int)(index % _segmentSize));
+		return buf;
+	}
+
+That's straightforward, but what's a good value for _segmentSize? Your first thought might be Integer.MAX_VALUE, since this is the maximum index value for a buffer. While that would result in the fewest number of buffers to cover the file, it has one big flaw: you won't be able to access multi-byte values at segment boundaries.
+
+Instead, you should overlap buffers, with the size of the overlap being the maximum sub-buffer (or byte[]) that you need to access. In my implementation, the segment size is Integer.MAX_VALUE / 2 and each buffer is twice that size; one sub-buffer starts halfway into its predecessor:
+
+	public MappedFileBuffer(File file, int segmentSize, boolean readWrite)	throws IOException
+	{
+		if (segmentSize > MAX_SEGMENT_SIZE)
+			throw new IllegalArgumentException( "segment size too large (max " + MAX_SEGMENT_SIZE + "): " + segmentSize);
+
+		_segmentSize = segmentSize;
+		_fileSize = file.length();
+
+		RandomAccessFile mappedFile = null;
+		try
+		{
+			String mode = readWrite ? "rw" : "r";
+			MapMode mapMode = readWrite ? MapMode.READ_WRITE : MapMode.READ_ONLY;
+
+			mappedFile = new RandomAccessFile(file, mode);
+			FileChannel channel = mappedFile.getChannel();
+
+			_buffers = new MappedByteBuffer[(int)(_fileSize / segmentSize) + 1];
+			int bufIdx = 0;
+			for (long offset = 0 ; offset < _fileSize ; offset += segmentSize)
+			{
+				long remainingFileSize = _fileSize - offset;
+				long thisSegmentSize = Math.min(2L * segmentSize, remainingFileSize);
+				_buffers[bufIdx++] = channel.map(mapMode, offset, thisSegmentSize);
+			}
+		}
+		finally
+		{
+			// close quietly
+			if (mappedFile != null)
+			{
+				try
+				{
+					mappedFile.close();
+				}
+				catch (IOException ignored) { /* */ }
+			}
+		}
+	}
+	
+There are two things to notice here. The first notice is my use of Math.min(). You can't create a mapped buffer that's larger than the actual file; map() will throw if you try. Since I specify segment size rather than number of segments, I need to ensure that they fit reality. At most two buffers will be shrunk by this call, but it's less code to check on every buffer.
+
+The second — and perhaps more important — thing is that I I close the RandomAccessFile after creating the mappings. My original version of this class didn't; it had a close() method, along with a finalizer to catch programmer mistakes. Then one day I took a closer look at the FileChannel.map() docs, and discovered that the buffer will persist after the channel is closed — it's removed by the garbage collector (and this explains the reason that MappedByteBuffer doesn't have its own close() method).
+
+Garbage Collection of Direct/Mapped Buffers:
+--------------------------------------------
+How does the non-heap memory for direct buffers and mapped files get released? After all, there's no method to explicitly close or release them.
+The answer is that they get garbage collected like any other object, but with one twist: if you don't have enough virtual memory space or commit charge to allocate a direct buffer, that will trigger a full collection even if there's plenty of heap memory available. Normally, this won't be an issue: you probably won't be allocating and releasing direct buffers more often than heap-resident objects. If, however, you see full GC's appearing when you don't think they should, take a look at your program's use of buffers.
+
+Along the same lines, when you're using direct buffers and mapped files, you'll get to see some of the more esoteric variants of OutOfMemoryError.
+
+“Direct buffer memory” is one of the more common, and appears to indicate an OS-imposed limit (based on my reading of the JDK internal class Bits.java)
+
+Also interesting is exceeding the total memory available from RAM and swap: that OutOfMemoryError didn't even have a message.
+
+Enabling Large Direct Buffers:
+------------------------------
+You may be surprised, the first time that you try to allocate direct buffers on a 64-bit machine, that you get OutOfMemoryError when there's plenty of RAM available. You can usually resolve this problem by passing the following options when starting the JVM:
+
+	-d64
+	
+This option instructs the JVM to run in 64-bit mode. At the time of writing, many 64-bit operating systems actually have 32-bit JVMs, because the 32-bit JVM may be more efficient for “small” programs. This option is documented only for Linux/Solaris JVMs, and the documentation has a lot of caveats regarding when and how a 64-bit JVM is invoked. But it won't hurt.
+	
+	-XX:MaxDirectMemorySize
+	
+This option is a hack to trigger garbage collection (which will reclaim any unreachable buffers); the value takes the normal JVM memory specifies (eg, 1024 for 1024 bytes, 1024m for 1024 megabytes, and 10g for 10 gigabytes). The -XX prefix indicates that it's one of the “super-secret, undocumented, OpenJDK-specific options,” and may change or be removed at any time.
+To summarize, if you're running a program that needs to allocate 12 GB of direct buffers, you'd use a command-line like this:
+
+	java -XX:MaxDirectMemorySize=12g com.example.MyApp
+	
+If you're working with large buffers (direct buffers or memory mapped files), you should also use the -XX:+UseLargePages option:
+
+	java -d64 -XX:MaxDirectMemorySize=12g -XX:+UseLargePages com.example.MyApp
+	
+By default, the memory manager maps physical memory to the virtual address space in small chunks (4k is typical). This means that page faults can be handled more efficiently, because there's less data to read or write. However, small pages mean that memory management hardware has to keep track of more information to translate virtual addresses to physical. At best, this means less efficient usage of the TLB, which makes every memory access slower. At worst, you'll run out of entries in the page table (which is reported as OutOfMemoryError).
+
+Thread Safety:
+--------------
+ByteBuffer thread safety is explicitly covered in the Buffer JavaDoc; the short version is that buffers are not thread-safe. Clearly, you can't use relative positioning from multiple threads without a race condition, but even absolute positioning is not guaranteed (regardless of what you might think after looking at the implementation classes). Fortunately, the work-around is easy: give each thread its own buffer.
+
+There are two methods that let you create a new buffer from an existing one: duplicate() and slice(). I've already described the latter: it creates a new buffer that starts at the current buffer's position. The former creates a new buffer that covers the entire original; it is equivalent to setting the original buffer's position at zero and then calling slice().
+
+The JavaDoc for these methods states that “[c]hanges to this buffer's content will be visible in the new buffer, and vice versa.” However, I don't think this takes the Java memory model into account. To be safe, consider buffers with shared backing store equivalent to an object shared between threads: it's possible that concurrent accesses will see different values. Of course, this only matters when you're writing to the buffer; for read-only buffers, simply having a unique buffer per thread is sufficient.
+
+That said, you still have the issue of creating buffers: you need to synchronize access to the slice() or duplicate() call. One way to do this is to create all of your buffers before spawning threads. However, that may be inconvenient, especially if your buffer is internal to another class. An alternative is to use ThreadLocal:
+
+	public class ByteBufferThreadLocal	extends ThreadLocal<ByteBuffer>
+	{
+		private ByteBuffer _src;
+
+		public ByteBufferThreadLocal(ByteBuffer src)
+		{
+			_src = src;
+		}
+
+		@Override
+		protected synchronized ByteBuffer initialValue()
+		{
+			return _src.duplicate();
+		}
+	}
+
+In this example, the original buffer is never accessed by application code. Instead, it serves as a master for producing copies in a synchronized method, and those copies are used by the application. Once a thread finishes, the garbage collector will dispose of the buffer(s) that it used, leaving the master untouched.
+
+
