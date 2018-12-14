@@ -1,0 +1,85 @@
+EJB:
+Suitable for robust, scalable, and secure enterprise applications.
+
+Drawbacks:
+Increased complexity & dev time: EJB adheres to a complex specification that helps you develop across distributed systems. But this benefit makes the code more complex. Since EJBs are more than plain java, it’ll take you longer to build & will be harder to debug when something goes wrong.
+
+- Debugging EJB
+- Re-entrancy in EJB
+
+---------------------------------------------------------------
+Legacy app:
+struts + business objects + dao + postgres(db)
+---------------------------------------------------------------
+The huge EJB problem was that of remoting: one of the key features.
+The idea was you would use JNDI to look up a remote object on a server over the network, and call its methods as if it were in process.
+That was never going to work. Speed, and connection failure handling made the client code different to in process calls.
+
+A kludge was the session bean EJB, which removed the whole idea of OOP method calls by slapping an RPC procedural interface over the top.
+Then the web took off, and all those stateful session beans were a liability over the stateless HTTP protocol.
+
+Another kludge came in, stateless session beans, which now meant your RPC layer was even thinner.
+
+So out of three design goals - remoting, object relational mapping, transactions - EJB spectacularly failed on all three.
+---------------------------------------------------------------
+
+EJB Advantages-
+ There are following advantages of EJB as follows:
+ 
+ 1 EJB container provides System level services to enterprise java beans.
+ 2 EJB developer just focus on business logic and on solving business problems.
+ 3 To access EJB free security is provided.
+ 4 Declarative transactions are provided.
+ 5 EJBs are cached & pooled. Containers manage the EJB life cycles.
+ 6 Remote access capabilities are present & are clustered for sake of scalability.
+ 7 OO concepts are supported for example inheritance.
+ 8 Usage of attributes or annotation based programming is possible.
+ 9 Free usage & access of complex resources
+ 10 EJB is a standard API due to which applications build on EJB can run on any complaint Java EE web application server.
+ 
+ Disadvantages of EJB-
+ There are several disadvantages of EJB as follows:
+ 
+ 1 Requires application server
+ 2 Requires only java client. For other language client, you need to go for webservice.
+ 3 Complex to understand and develop ejb applications.
+ 4 Complicated and large specification
+ 5 Increased time of development
+ 6 Complexities are added in comparison with straight Java classes
+ 7 Potential to create a more essential, costly & complex solution
+ 8 Continual revisions of the specifications
+ 9 Lots of resources are used & have also lots of artifacts.
+ Requires understanding of certain intricacies. For example, granularity and rolling back a transaction, infrastructures like business delegates, value objects, session facades & strategies like dirty marker and lazy loading etc.
+--------------------------------------------------------------------------
+What are the advantages of EJB model?
+
+1. The development of EJB applications is easy as the business logic is separated by the application developer and at the same time the developer can utilize the services of the EJB container.
+
+2. EJB are components, where the EJB vendors vend these components which encapsulate the functionality according to the need. Application development made easy as the EJB specification ensures the usability of beans developed by others can also be used in a specific application.
+
+3. The isolation of labor in developing, deploying, administering, providers made it faster to develop an EJB application.
+
+4. The major operations of managing transactions, state, multithreading, connection pooling etc. will be managed by the EJB container. The security is also provided by the EJB container.
+
+5. The EJB architecture is compatible with other APIs like servlets and JSPs.
+
+What are the limitations of EJB models?
+
+1. The no file I/O is a security concern. By loading files using Class.getResource() and bundling non-EJB config files with EJB-jar.
+
+2. While mapping a CMP bean with SQL Server database, a field of float type need to be mapped with database column of type FLOAT only, not for REAL.
+
+3. A table which has a multi-column primary key and one or more foreign keys which share any one of the primary key columns, then the foreign keys must contain columns which are not of primary key or exactly the same primary key columns.
+For Example: the two columns that comprises a primary key are A and B. Then the columns that comprises a foreign key are column A and column B or column C and column D, but certainly not column A and column D or column B and column C or column A and column C or column B and D.
+
+4. While using root-leaf approach in order to map inheritance, the foreign-key constraints are to be removed from the database for avoiding referential integrity related issues. The same process is to be followed while using secondary maps with multiple tables.
+--------------------------------------------------------------------------------
+Before EJB, complex Java enterprise applications were developed, each with its own
+resource pooling, thread management, service lookup, data access layer, and other infrastructure.
+
+EJB is an infrastructure closely associated with distribution.
+--------------------------------------------------------------------------------
+Services provided by EJB container:
+
+How EJB containers handle exceptions and how this relates to transaction management:
+
