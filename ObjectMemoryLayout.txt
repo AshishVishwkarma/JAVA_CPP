@@ -1,0 +1,36 @@
+set path=%path%;C:\Program Files\Java\jdk1.8.0_101\bin
+
+cd C:\Ashish\java_project\Samples\src
+javac -cp ..\Class ObjectLayout\Base.java -d ../Class
+javac -cp ..\Class ObjectLayout\Derived1.java -d ../Class
+javac -cp ..\Class ObjectLayout\LayoutTest.java -d ../Class
+
+
+=========================================================================
+A C programmer manages most datastructure memory allocations himself, and sizeof() is indispensable for knowing memory block sizes to allocate. Additionally, C memory allocators like malloc() do almost nothing as far as object initialization is concerned: a programmer must set all object fields that are pointers to further objects. But when all is said and coded, C/C++ memory allocation is quite efficient.
+
+By comparison, Java object allocation and construction are tied together (it is impossible to use an allocated but uninitialized object instance). If a Java class defines fields that are references to further objects, it is also common to set them at construction time. Allocating a Java object therefore frequently allocates numerous interconnected object instances: an object graph. 
+
+Compared with C/C++, equivalent Java datastructures tend to occupy more physical memory.
+
+In enterprise software development, getting close to the maximum available virtual memory on today's 32-bit JVMs is a common scalability constraint. Thus, a Java programmer could benefit from sizeof() or something similar to keep an eye on whether his datastructures are getting too large or contain memory bottlenecks. Our objective is to obtain a good guess of the object's size and hopefully get a clue when a class field might be redundant; or when a field should be lazily populated; or when a more compact nested datastructure is necessary, etc.
+
+Unfortunately, Java does not provide anything like C's sizeof(). Fortunately, Java reflection allows you to write such a tool quite easily.
+
+what is the definition of an object size? Is it just the size of the object instance you're examining or the size of the entire data graph rooted at the object instance? 
+
+For common 32-bit JVMs a plain java.lang.Object takes up 8 bytes, and the basic data types are usually of the least physical size that can accommodate the language requirements (except boolean takes up a whole byte):
+	// java.lang.Object shell size in bytes:
+    public static final int OBJECT_SHELL_SIZE   = 8;
+    public static final int OBJREF_SIZE         = 4;
+    public static final int LONG_FIELD_SIZE     = 8;
+    public static final int INT_FIELD_SIZE      = 4;
+    public static final int SHORT_FIELD_SIZE    = 2;
+    public static final int CHAR_FIELD_SIZE     = 2;
+    public static final int BYTE_FIELD_SIZE     = 1;
+    public static final int BOOLEAN_FIELD_SIZE  = 1;
+    public static final int DOUBLE_FIELD_SIZE   = 8;
+    public static final int FLOAT_FIELD_SIZE    = 4;
+
+We need to consider memory alignment of the fields too.
+NOTE: Memory alignment is dependent on the JVM vendor.
