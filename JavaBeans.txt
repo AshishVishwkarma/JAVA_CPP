@@ -1,0 +1,143 @@
+JavaBeans: [https://docs.oracle.com/javase/tutorial/javabeans/ ]
+	JavaBeans makes it easy to reuse software components. Developers can use software components written by others without having to understand their inner workings.
+	
+	With a good tool like NetBeans, you can assemble JavaBeans components into an application without having to write any code.
+	
+Package: java.beans.*	
+	
+Writing JavaBeans Components:
+	You don't need a special tool and you don't have to implement any interfaces. All you have to do is to follow certain coding conventions so that your class look like a bean — tools that use beans will be able to recognize and use your bean.
+	
+	A bean is a Java class with method names that follow the JavaBeans guidelines. 
+	A bean builder tool uses introspection to examine the bean class. Based on this inspection, the bean builder tool can figure out the bean's properties, methods, and events.
+	
+JavaBeans guidelines for properties, methods, and events:
+
+Properties:
+	To define a property in a bean class, supply public getter and setter methods. 	
+		get<Property_Name>
+		set<Property_Name>
+		is<Boolean_Property_Name>
+	
+	NOTE: A read-only property has a getter method but no setter. A write-only property has a setter method only.
+	
+Specializations of basic properties:
+	Indexed Properties:
+		An indexed property is an array instead of a single value.
+		The bean class provides a method for getting and setting the entire array along with providing methods for getting and setting a specific element of the array.
+		
+	Bound Properties:
+		A bound property notifies listeners when its value changes. This has two implications:
+		- The bean class includes addPropertyChangeListener() and removePropertyChangeListener() methods for managing the bean's listeners.
+		- When a bound property is changed, the bean sends a PropertyChangeEvent to its registered listeners.
+		
+		NOTE: java.beans package includes PropertyChangeEvent, PropertyChangeListener, and PropertyChangeSupport.
+		PropertyChangeSupport class keeps track of property listeners and includes a convenience method (firePropertyChange) that fires property change events to all registered listeners.
+		
+	Constrained Properties:
+		A constrained property is a special kind of bound property. For a constrained property, the bean keeps track of a set of veto listeners. When a constrained property is about to change, the listeners are consulted about the change. Any one of the listeners has a chance to veto the change, in which case the property remains unchanged.
+		
+		NOTE: The veto listeners are separate from the property change listeners.
+		java.beans package includes a VetoableChangeSupport class.
+		
+		
+Methods:
+	Any public method that is not part of a property definition is a bean method.
+	A bean's methods are the things it can do. 
+	
+
+Events:
+	Events too are identified by a specific pattern of method names.
+		public void add<Event>Listener(<Event>Listener a)
+		public void remove<Event>Listener(<Event>Listener a)
+		
+---------------------------------------------------------------------------------------		
+BeanInfo:
+	A BeanInfo is a class that changes how your bean appears in a builder tool.	
+		public class <Bean_class_name>BeanInfo
+		
+	A builder tool can query the BeanInfo to find out which properties it should display first and which should be hidden.
+
+----------------------------------------------------------------------------------------
+Bean Persistence:
+	A bean has the property of persistence when its properties, fields, and state information are saved to and retrieved from storage. 
+	NOTE: Component models provide a mechanism for persistence that enables the state of components to be stored in a non-volatile place for later retrieval.
+	
+	The mechanism that makes persistence possible is called serialization. 
+	Object serialization means converting an object into a data stream and writing it to storage.
+	
+	To persist, your beans must support serialization by implementing either the java.io.Serializable interface, or the java.io.Externalizable  interface. These interfaces offer you the choices of automatic serialization and customized serialization. 
+	NOTE: If any class in a class's inheritance hierarchy implements Serializable or Externalizable, then that class is serializable.
+
+	Examples of serializable classes: Component, String, Date, Vector, and Hashtable
+	
+	NOTE: The Java Object Serialization API automatically serializes most fields of a Serializable object to the storage stream. This includes primitive types, arrays,and strings. The API does not serialize or deserialize fields that are marked transient or static.
+	
+	You can control the level of serialization that your beans undergo. Three ways to control serilization are:
+	- Automatic serialization: implemented by the Serializable interface. The Java serialization software serializes the entire object, except transient and static fields.
+	- Customized serialization: Selectively exclude fields you do not want serialized by marking with the transient (or static) modifier.
+	- Customized file format: implemented by the Externalizable interface and its two methods. Beans are written in a specific file format.
+	
+	Java Object Serialization tools:
+	
+	Serializable:
+	Serializable declares no methods; it acts as a marker, telling the Object Serialization tools that your bean class is serializable. Marking your class Serializable means you are telling the Java Virtual Machine (JVM) that you have made sure your class will work with default serialization.
+	
+	NOTE:
+	- Classes that implement Serializable must have an access to a no-argument constructor of supertype. This constructor will be called when an object is "reconstituted" from a .ser file.
+	- You don't need to implement Serializable in your class if it is already implemented in a superclass.
+	- All fields except static and transient fields are serialized. Use the transient modifier to specify fields you do not want serialized, and to specify classes that are not serializable.
+	
+	NOTE:
+	If your serializable class contains either of the following two methods (the signatures must be exact), then the default serialization will not take place.
+
+		private void writeObject(java.io.ObjectOutputStream out) throws IOException;
+		private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException;
+	
+	Implement writeObject when you need to exercise greater control over what gets serialized when you need to serialize objects that default serialization cannot handle, or when you need to add data to the serialization stream that is not an object data member. Implement readObject to reconstruct the data stream you wrote with writeObject.
+	
+	Externalizable:
+	Use the Externalizable interface when you need complete control over your bean's serialization (for example, when writing and reading a specific file format).
+		public interface Externalizable extends Serializable
+	
+	Methods:
+	void	readExternal(ObjectInput in)
+	void	writeExternal(ObjectOutput out)
+
+	NOTE: Classes that implement Externalizable must have a no-argument constructor.
+	
+Long Term Persistence:
+	Long-term persistence is a model that enables beans to be saved in XML format.
+	
+	Encoder and Decoder:
+	The XMLEncoder class is assigned to write output files for textual representation of Serializable objects.
+		XMLEncoder encoder = new XMLEncoder( new BufferedOutputStream( new FileOutputStream("Beanarchive.xml")));
+		encoder.writeObject(object);
+		encoder.close(); 
+
+	The XMLDecoder class reads an XML document that was created with XMLEncoder:
+		XMLDecoder decoder = new XMLDecoder( new BufferedInputStream( new FileInputStream("Beanarchive.xml")));
+		Object object = decoder.readObject();
+		decoder.close();
+		
+	NOTE: An XML bean archive has its own specific syntax, which includes the following tags to represent each bean element:
+		- an XML preamble to describe a version of XML and type of encoding
+		- a <java> tag to embody all object elements of the bean
+		- an <object> tag to represent a set of method calls needed to reconstruct an object from its serialized form or statements
+		- tags to define appropriate primitive types
+		- a <class> tag to represent an instance of Class
+		- an <array> tag to define an array
+		
+	
+Bean Customization:
+	Customization provides a means for modifying the appearance and behavior of a bean within an application builder so it meets your specific needs.
+	A bean's appearance and behavior can be customized at design time within beans-compliant builder tools. 
+	There are two ways to customize a bean:
+	- By using a property editor
+	- By using customizers
+	
+---------------------------------------------------------------------------------------
+import org.apache.commons.beanutils.BeanUtils;
+		
+	BeanUtils.copyProperties():
+	
