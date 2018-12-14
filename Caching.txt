@@ -1,0 +1,75 @@
+Cache:
+A cache is an area of local memory that holds a copy of frequently accessed data that is otherwise expensive to get or compute. Examples of such data include a result of a query to a database, a disk file or a report.
+
+A cache works as the following: An application requests data from cache using a key. If the key is not found, the application retrieves the data from a slow data source and puts it into the cache. The next request for a key is serviced from the cache.
+
+Improving Performance with Caching:
+Caching may provide significant performance improvement for a Java application, often in orders of magnitude. The performance improvement comes from serving hard to get data from the local memory of the application.
+
+Eviction policy on cache:
+A cache uses a part of the application's memory. That is why the size of the cache has to be small. A special algorithm should be used to remove (evict) data from the cache that has low chances of access. Such algorithm is called an eviction policy.
+A cache eviction policy is an algorithm according to which an existing element is removed from a cache when a new element is added. The eviction policy is applied to ensure that the size of the cache does not exceed a maximum size.
+Example:
+- Least Recently Used (LRU):
+
+
+Temporal locality and spatial locality:
+To benefit from caching, the access to data should display properties of temporal and spatial locality. 
+The data should be accessed often (temporal locality) and the probability of accessing a near cache element should be high (spatial locality). 
+Increasing cache size for the data that satisfies this requirement increases hit/miss ratio.
+
+Data that does not satisfy the requirement of temporal and spatial locality of access leads to faster eviction of cache elements and as a result will lower the number of cache hits and increase cache maintenance.
+
+Cache Performance Characteristics:
+The main performance characteristic of a cache is a hit/miss ratio. The hit/miss ratio is calculated as number of cache hits divided by number of cache misses. The hit/miss ratio is calculated using hit and miss counters accumulated over a period of time. A high hit/miss ratio means that a cache performs well. A low hit/miss ratio means that the cache is applied to data that should not be cached. Also, the low hit/miss ratio may mean that a cache is too small to capture temporal locality of data access.
+
+Common Cache Use Scenarios:
+Common cache use scenarios include an application cache, a second level (L2) cache and a hybrid cache.
+
+Application Cache:
+An application cache is a cache that an application accesses directly. An application benefits from using a cache by keeping most frequently accessed data in memory .
+
+Level-2 Cache:
+One of the major use scenarios for a cache is a level-2 (L2) cache . An L2 cache provides caching services to an object-relational mapping (ORM) framework or a data mapping (DM) framework such as Hibernate or iBatis respectively. An L2 cache hides the complexity of the caching logic from an application.
+
+An L2 cache improves performance of an ORM or DM framework by reducing unnecessary trips to the database .
+
+The application does not access cache directly in this use scenario. Instead, the application utilizes a high level interface provided by an ORM or a DM framework. The framework uses cache for caching its internal data structures such as mapped objects and database query results. If the cached data is not available, the framework retrieves it from the database and puts it into the cache.
+
+Hybrid Cache:
+A hybrid cache is a cache that uses an external data source to retrieve data that is not present in the cache. An application using a hybrid cache benefits from simplified programming of cache access.
+
+This use scenario is different from the application or the second-level cache when an application or a data access framework is responsible for populating the cache in case of cache misses.
+
+Caching Anti-Patterns:
+Caching provides such a great improvement of performance that it is often used without limit. An anti-pattern Cache Them All is characterized by caching all data, without regard to temporal or spatial locality of data access . Cache Them All degrades application performance instead of improving it. The degradation of performance is caused by the overhead of maintaining a cache without benefiting from reduced cost of access to frequently used data.
+
+To avoid the pitfall of the Cache Them All , only data that is hard to get and shows temporal and spatial locality of access should be cached.
+
+Caching Products for Java:
+Common features: concurrent access, configuration, eviction to disk and statistics.
+
+Commercial Products:
+- Cacheonix
+
+Free Products:
+- Apache JCS
+- OSCache
+- JBossCache
+- EHCache
+
+---------------------------------------------------------------------------
+A typical interface for a Java cache providing access to the data using a unique key:
+
+
+-------------------------------------------------------------------------------
+Transactional distributed caches are not scalable. 
+-------------------------------------------------------------------------------
+Benefit of cache over buffer:
+
+
+
+
+
+
+
