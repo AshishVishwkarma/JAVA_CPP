@@ -1,0 +1,49 @@
+"Spring Framework can deliver declarative transaction management using AOP."
+"Spring offers more options for managing the lifecycles of managed OBJECTS" 
+
+
+Shortcomings in J2EE architecture:
+It results into applications that 
+- are more complex than their business requirements warrant, 
+- show disappointing performance,
+- are hard to test (Due to its heavy dependence on the EJB container, business logic coded in EJB is very hard to test.)
+- cost too much to develop and maintain.
+
+*EJB application codes are dependent on the EJB container.
+
+Dynamic proxies (introduced with J2SE 1.3) make it awkward to use multiple source files needed to implement every EJB.
+
+Spring wasn’t conceived as an alternative to EJB, but it provides powerful, tested, implementations of
+features, such as declarative transaction management for plain Java objects, that enable users to dispense
+with EJB in many projects.
+
+Spring has excellent support for architectural refactoring.
+
+--------------------------------------------------------
+When to use EJB:
+EJB remains the best choice for applications that genuinely need object distribution, especially if they are
+implemented wholly in Java or need to use IIOP as the communication protocol. This type of application
+is rarer than might be imagined.
+
+EJB is also a pretty good solution for applications that are heavily based around messaging, as message
+driven beans are relatively simple and effective components.
+
+One of the best examples of an application type to which EJB may add real value is financial middleware.
+Financial applications can involve processing that is so costly in time and computing power that
+the cost of remote invocation is (atypically) less than the cost of processing. For such applications, object
+distribution makes sense, and EJB is a good way of implementing it. Financial middleware is also heavily
+message-oriented, and suited to use of MDBs.
+--------------------------------------------------------
+The values and goals we should keep in mind as we design an application:
+- Simplicity
+? Productivity
+? The importance of object orientation
+? The primacy of business requirements
+? The importance of empirical process
+? The importance of testability
+
+
+--------------------------------------------------------
+
+
+
