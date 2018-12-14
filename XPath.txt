@@ -1,0 +1,62 @@
+XPath 2.0
+XQuery 1.0
+XQueryX 1.0
+XSLT 2.0
+Data Model (XDM)
+Functions and Operators
+Formal Semantics
+Serialization
+
+
+XPath:
+	XPath 2.0 is an expression language that allows the processing of values conforming to the data model defined in XQuery 1.0 and XPath 2.0 Data Model (Second Edition)]. 
+	
+	The primary purpose of XPath is to address the nodes of [XML 1.0] or [XML 1.1] trees.
+	XPath gets its name from its use of a path notation for navigating through the hierarchical structure of an XML document. 
+	XPath uses a compact, non-XML syntax to facilitate use of XPath within URIs and XML attribute values.
+	
+	Key Feature: the path expression, which provides a means of hierarchic addressing of the nodes in an XML tree.
+	
+	The basic building block of XPath is the expression, which is a string of [Unicode] characters.
+	
+	XPath is a case-sensitive language. 
+	
+	
+URI => Universal Resource Identifier	
+
+	
+Serialization:	
+	Serialization is the process of converting an XDM instance into a sequence of octets.
+
+Document Order:
+	Informally, document order is the order in which nodes appear in the XML serialization of a document.
+	Document order is stable, which means that the relative order of two nodes will not change during the processing of a given expression, even if this order is implementation-dependent.
+	
+	Within a tree, document order satisfies the following constraints:
+	- The root node is the first node.
+	- Every node occurs before all of its children and descendants.
+	- Namespace nodes immediately follow the element node with which they are associated. The relative order of namespace nodes is stable but implementation-dependent.
+	- Attribute nodes immediately follow the namespace nodes of the element node with which they are associated. The relative order of attribute nodes is stable but implementation-dependent.
+	- The relative order of siblings is the order in which they occur in the children property of their parent node.
+	- Children and descendants occur before following siblings.
+	
+Atomization:	
+	Atomization of a sequence is defined as the result of invoking the fn:data function on the sequence.
+	The result of atomization is either a sequence of atomic values or a type error.
+	Rules:
+		- If the item is an atomic value, it is returned.
+		- If the item is a node, its typed value is returned.
+		
+		
+
+Every node has a typed value and a string value. 
+The typed value of a node is a sequence of atomic values and can be extracted by applying the fn:data function to the node.
+The string value of a node is a string and can be extracted by applying the fn:string function to the node.
+- For text and document nodes, the typed value of the node is the same as its string value.
+- The typed value of a comment, namespace, or processing instruction node is the same as its string value.
+- For an element node, the relationship between typed value and string value depends on the node's type annotation.
+
+
+A path expression can be used to locate nodes within trees. A path expression consists of a series of one or more steps, separated by "/" or "//", and optionally beginning with "/" or "//".
+
+		
