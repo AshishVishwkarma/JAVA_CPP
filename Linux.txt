@@ -1,0 +1,3 @@
+Does pipe support parallelism?
+View process tree:
+CPP compiler:
