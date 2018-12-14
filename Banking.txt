@@ -1,0 +1,142 @@
+
+
+Global Credit Enquiry and Monitoring System:
+	FX, IRSs, FRAs, Currency Options, MMkts and Fixed Income
+	
+	Up to dated data is kept in the system through intra-day feeds and re-aggregating exposures for any counter-parties that are reaching their limits.
+	Various credit ratings are also maintained in the system.
+	
+	· A graphical representation of Counterparty Credit Risk exposure
+	· The ability to re-profile intra-day and potentially reduce exposure.
+	· Profile Simulation
+	· Reporting Suite
+	· Standard Format of Reports
+	· Limits and Utilisation Reports
+	· Close-out Reports
+	· Excess Reports including "No Limit" excesses
+	· Rejected Trades         
+	· Real-time updates
+	· Reports by dealing centre
+	· Cross Product Information
+	· FX 
+	· Money Markets
+	· Currency Options
+	· Swaps & Fras
+	· Fixed Income
+
+	Part of the Pre-processing phase involves linking (also known as mapping) of entities in the feed and the entities in the system. Entities that fail mapping are stored in the failed trades are for mandatory mappings. Non-mandatory mappings are associated to types of "miscellaneous". Generic trade, profile and attribute files are produced, and are BCPed (Bulk Copy Process) into their relevant tables. A Reconciliation (REC) phase is conducted to find new trades by area (MM, Risk MI, etc.). The REC process may user database Cursors to iterate through the database, and may be extremely inefficient. The 'feed trades table' is differenced to 'system trades table' to determine the New, Amended and Unchanged trades. These trades are input into a Trade Processor, which eventually stores the successful candidates into the live Trade tables within the system.
+
+	Aggregation Process:
+	Aggregation comprises the summation of individual trade profiles by:
+		· Counterparty
+		· Product
+		· Dealing Centre
+	This then gives an overall counterparty exposure
+
+	
+
+E-Commerce activities:	
+	Deal Clearance:
+	Collateral Management:
+	Netting:
+	Limits:
+
+Front Office activities:
+	Special Sanctions:
+	Trade Overwrites:
+	Linking of the Trades:
+	
+
+Key terms:
+---------	
+Exposures:
+Credit:
+	Credit is a contractual agreement in which a borrower receives something of value now and agrees to repay the lender at some later date with consideration, generally with interest.
+	Credit also refers to an accounting entry that either decreases assets or increases liabilities and equity on the company's balance sheet. Additionally, on the company's income statement, a debit reduces net income, while a credit increases net income.
+	
+	There are many different forms of credit. When banks offer their clients car loans, mortgages, signature loans and lines of credit, those are all forms of credit. Essentially, the bank has credited money to the borrower, and the borrower must pay it back at a future date.
+	
+Line of Credit (LOC):
+	A line of credit (LOC) is an arrangement between a financial institution – usually a bank – and a customer that establishes the maximum loan amount the customer can borrow. The borrower can access funds from the line of credit at any time as long as they do not exceed the maximum amount (or credit limit) set in the agreement and meet any other requirements such as making timely minimum payments.
+	
+	A line of credit has built-in flexibility, which is its main advantage. Borrowers can request a certain amount, but they do not have to use it all. Rather, they can tailor their spending on the LOC to their needs and owe interest only on the amount they draw, not on the entire credit line. In addition, borrowers can adjust their repayment amounts as needed, based on their budget or cash flow. They can repay, for example, the entire outstanding balance all at once or just make the minimum monthly payments.
+	
+	A line of credit is a type of revolving account, also known as an open-end credit account. This arrangement allows borrowers to spend the money, repay it and spend it again in a virtually never-ending, revolving cycle. Revolving accounts such as lines of credit and credit cards are different from installment loans such as mortgages, car loans and signature loans. With installment loans, also known as closed-end credit accounts, consumers borrow a set amount of money and repay it in equal monthly installments until the loan is paid off. Once an installment loan has been paid off, consumers cannot spend the funds again unless they apply for a new loan.
+	
+	An LOC can be secured (by collateral) or unsecured, with unsecured LOCs typically subject to higher interest rates.
+	NOTE: Lines of credit do not provide the same regulatory protection as credit cards. Penalties for late payments and going over the LOC limit can be severe.
+	
+Credit Limit:
+	Credit limit refers to the maximum amount of credit a financial institution extends to a client through a line of credit as well as the maximum amount a credit card company allows a borrower to spend on a single card. Lenders usually set credit limits based on information in the application of the person seeking credit.
+	
+CLU (Credit Limit Utilisation):
+
+
+
+
+
+Credit ratings:
+	A credit rating is an assessment of the creditworthiness of a borrower in general terms or with respect to a particular debt or financial obligation. A credit rating can be assigned to any entity that seeks to borrow money — an individual, corporation, state or provincial authority, or sovereign government.
+	Credit assessment and evaluation for companies and governments is generally done by a credit rating agency such as Standard & Poor’s (S&P), Moody’s, or Fitch. These rating agencies are paid by the entity that is seeking a credit rating for itself or for one of its debt issues.
+	A loan is essentially a promise, and a credit rating determines the likelihood that the borrower will pay back a loan within the confines of the loan agreement, without defaulting.
+	NOTE: Credit ratings apply to businesses and government, while credit scores apply only to individuals. 
+	NOTE: Moody's was the first agency to issue publicly available credit ratings for bonds, in 1909.
+	NOTE: While providing the rating, the rating agencies must take a balanced and objective view of the borrower’s financial situation and capacity to service/repay the debt.
+	
+	
+Credit Score:
+	A credit score is a statistical number that evaluates a consumer's creditworthiness and is based on credit history. Lenders use credit scores to evaluate the probability that an individual will repay his or her debts. A person's credit score ranges from 300 to 850, and the higher the score, the more financially trustworthy a person is considered to be.
+	Credit scores are derived from the credit history maintained by credit-reporting agencies such as Equifax, Experian, and TransUnion.
+	Credit bureaus in India: CIBIL, Equifax, Crisil Limited, ICRA Limited, Experian
+
+Reval Rates (Revaluation Rates):
+	Revaluation rates are market currency rates from a specific point in time that are used as a base value by currency traders to assess whether a profit or a loss has been realized for the day. In most cases, the revaluation rate is the closing rate for the previous trading day.
+	Revaluation rates are often referred to as just "reval rates".
+
+Retail investors:	
+
+Risk Profile:
+	A risk profile is an evaluation of an individual's willingness and ability to take risks. It can also refer to the threats to which an organization is exposed. A risk profile is important for determining a proper investment asset allocation for a portfolio. Organizations use a risk profile as a way to mitigate potential risks and threats. 
+
+Trade Profiles:
+	The Trade Profiles provide standard information on the structural trade situation and trade policy measures of members, observers and other selected economies. The profiles are complemented with general macroeconomic indicators. 
+	
+Profiling:
+	Grid point
+	up
+	zero
+	down
+	gross amount
+	mtm
+	clu
+	cre
+	
+	There is one profile_id corresponding to one trade. There are multiple grid points corresponding to a profile_id.
+	
+	
+FX Profile:	
+	Standard grid points (number of calender days) are used to generate profile for FX trades.
+	We calculate profile of a trade for number of calender days between start_day and end_day.
+	Grid point zero = today.
+	Following information are used:
+		Convert the pay currency to GBP spot rate if not equity index.
+		
+		Use factor from tenor band to calculate gross amount.
+		
+
+Credit profile:
+	
+Types of trades:
+	FX Trades (FX)
+	Fixed Income (FI)
+	Exotic Options (ECO)
+	Vanilla Options (CO)(Pabulum)
+	Greenwich Bonds
+	Wall Street FX Trades 
+	Ulster Bank M M Trades 
+	Equity Derivatives 
+	(IRD)
+	
+Global financial market:
+	
+Equity Index:
