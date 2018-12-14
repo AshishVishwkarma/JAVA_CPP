@@ -1,0 +1,3 @@
+="Total: "&A12 
+="Total: "&TEXT(A12,"$#,##0.00")
+="Report printed on "&TEXT(NOW(),"mmmm d, yyyy at h:mm AM/PM")
