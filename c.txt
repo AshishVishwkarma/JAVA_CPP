@@ -1,0 +1,281 @@
+To compile C file:
+	/usr/bin/cc -c -g -D_REENTRANT -mt -m32 -DSYB_LP32 input_name.c
+To build C:
+	/usr/bin/cc -o output_name.exe input_name.o -g -D_REENTRANT -mt -m32 -DSYB_LP32
+
+E.g.,
+	/usr/bin/cc -c -g -D_REENTRANT -mt -m32 -DSYB_LP32 hello.c
+	/usr/bin/cc -o hello_c.exe hello.o -g -D_REENTRANT -mt -m32 -DSYB_LP32
+
+To run:
+	./hello_c.exe
+	
+To compile CPP file:
+	/usr/bin/CC -c -g -xpg -xwe -mt -m32 input_name.cpp
+To build CPP:
+	/usr/bin/CC -o output_name.exe input_name.o -xpg -mt -m32
+	
+E.g.,
+	/usr/bin/CC -c -xwe -mt -m32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -mt -m32
+	
+	
+	/usr/bin/CC -c -xpg -xwe -mt -m32 -D_REENTRANT -DSYB_LP32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -xpg -mt -m32 -D_REENTRANT -DSYB_LP32
+	
+	/usr/bin/CC -c -xwe -mt -m32 -D_REENTRANT -DSYB_LP32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -mt -m32 -D_REENTRANT -DSYB_LP32
+	
+	/usr/bin/CC -c -g -xwe -mt -m32 -D_REENTRANT -DSYB_LP32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -mt -m32 -D_REENTRANT -DSYB_LP32
+	
+	/usr/bin/CC -c -g -xpg -xwe -mt -m32 -D_REENTRANT -DSYB_LP32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -xpg -mt -m32 -D_REENTRANT -DSYB_LP32
+	
+	/usr/bin/CC -c -g -xpg -xwe -mt -m32 hello.cpp
+	/usr/bin/CC -o hello_cpp.exe hello.o -xpg -mt -m32
+	
+	/usr/bin/CC -c -g -xpg -xwe -mt -m32 getopt_long_unix.cpp
+	/usr/bin/CC -o getopt_long_unix_cpp.exe getopt_long_unix.o -xpg -mt -m32
+	
+NOT Working:	
+	/usr/bin/cc -c -g -D_REENTRANT -mt -m32 -DSYB_LP32 hello.cpp 
+	Error:
+	cc: No input file specified, no output generated
+
+NOTE:
+	/usr/bin/cc -> /opt/app/SUNWspro/bin/cc
+	/usr/bin/CC -> /opt/app/SUNWspro/bin/CC
+	
+---------------------------------------------------------------------------------------	
+ /usr/bin/CC -flags
+=>
+________________________________________________________________________________
+Items within [ ] are optional. Items within < > are variable parameters.
+Bar | indicates choice of literal values.
+________________________________________________________________________________
++d                    Do not expand inline functions
++e0                   In compatibility mode, don't emit any virtual tables
++e1                   In compatibility mode, emit a global vtable for every defined class
++p                    Ignore non-standard preprocessor asserts
++w                    Print warnings about additional questionable constructs
++w2                   Emit warnings for code with additional portability problems
+-a                    Same as -xa
+-Bdynamic             Allow dynamic linking
+-Bstatic              Require static linking
+-Bsymbolic            Bind references to global symbols to their definitions
+-c                    Compile only; produce .o files but suppress linking
+-cg89                 Same as -xcg89
+-cg92                 Same as -xcg92
+-compat=5             Standard mode; accept source code that conforms to the C++ standard (default mode)
+-compat[=4]           Compatibility mode; accept ARM-style source code and generate object code compatible with C++ 4.2 (compatibility mode)
+-D<name>[=<token>]    Define preprocessor symbol <name> with <token>
+-dalign               Expands to -xmemalign=8s
+-dryrun               Same as -xdryrun
+-d{y|n}               Allow or disallow dynamic libraries for the entire executable
+-E                    Run preprocessor on source files; don't compile; send to stdout
+-erroff[=<t>[,<t>...]]  Suppress specified warnings; <t>={%all|%none|<msgtag>}
+-errtags[=<b>]        Display messages with tags; <b>={yes|no}
+-errwarn[=<t>[,<t>...]]  Treats warnings specified by tags as errors; <t>={%all|%none|<msgtag>}
+-fast                 Optimize for speed using a selection of options
+-features=<f>[,<f>...]  Enable/disable various C++ language features
+-filt[=<a>[,<a>...]]  Control the filtering of both linker and compiler error messages
+-flags                Same as -xhelp=flags
+-fma=<n>              Enable floating-point multiply-add instructions; <n>={none|fused}
+-fnonstd              Initialize floating-point hardware to non-standard preferences
+-fns[={yes|no}]       Select non-standard floating point mode
+-fround=<r>           Select the IEEE rounding mode in effect at startup
+-fsimple[=<n>]        Select floating-point optimization level; <n>={1|0|2}
+-ftrap=<t>[,<t>...]   Select floating-point trapping mode in effect at startup
+-G                    Build a dynamic shared library
+-g                    Compile for debugging
+-g0                   Compile for debugging by dbx but allow inlining
+-H                    Print path name of each file included during compilation
+-h<name>              Assign <name> to generated dynamic shared library
+-help                 Same as -xhelp=flags
+-I-                   Override the default search path for include files
+-I<path>              Add path to #include file search paths
+-i                    Tell linker to ignore any LD_LIBRARY_PATH setting
+-inline=[<a>[,<a>...]]  Same as -xinline=[<a>[,<a>...]]
+-instances=<a>        Control the link attributes of template instantiations
+-instlib=<library>    Inhibit generation of instances already in <library>
+-KPIC                 Same as -xcode=pic32
+-Kpic                 Same as -xcode=pic13
+-L<path>              Pass to linker to add <path> to the library search paths
+-l<name>              Add lib<name>.a or lib<name>.so to linker search list
+-libmieee             Same as -xlibmieee
+-libmil               Same as -xlibmil
+-library=<l>[,<l>...]  Force inclusion/exclusion of specified CC-provided libraries
+-m32                  Set 32-bit addressing model
+-m64                  Set 64-bit addressing model
+-mc                   Remove duplicate strings from .comment section of output files
+-migration            Show where to get information about migrating from C++ 4.2
+-misalign             Expands to -xmemalign=1i
+-mr                   Remove all strings from .comment section of output files
+-mr,<string>          Remove all strings and append <string> to .comment section
+-mt                   Specify options needed when compiling multi-threaded code
+-native               Same as -xtarget=native
+-noex                 Same as -features=no%except
+-nolib                Same as -xnolib
+-nolibmil             Same as -xnolibmil
+-norunpath            Do not build a runtime search path into the executable
+-O                    Same as -xO3
+-O<n>                 Same as -xO<n>
+-o <outputfile>       Set name of output file or executable to <outputfile>
+-P                    Compile source through preprocessor only, output to .i file
+-PIC                  Same as -KPIC
+-p                    Compile for profiling with prof
+-pg                   Same as -xpg
+-pic                  Same as -xcode=pic13
+-pta                  Same as -template=wholeclass
+-pti<path>            Use additional <path> for locating template definition file
+-pto                  Same as -instances=static
+-ptv                  Same as -verbose=template
+-Qoption <p> <o>[,<o>...]    Pass option <o> to compilation phase <p>
+-qp                   Same as -p
+-R<p>[:<p>...]        Build runtime search path list into executable
+-readme               Same as -xhelp=readme
+-S                    Compile and only generate assembly code (.s)
+-s                    Strip symbol table from the executable file
+-sb                   Same as -xsb
+-sbfast               Same as -xsbfast
+-staticlib=<l>[,<l>...]  Force linkage of specified libraries to be static
+-sync_stdio=<a>       Controls synchronization of the I/O libraries; <a>={yes|no}
+-temp=<path>          Use <path> as directory for temporary files
+-template=<a>[,<a>...]  Enable/disable various template options
+-time                 Same as -xtime
+-U<name>              Delete initial definition of preprocessor symbol <name>
+-unroll=<n>           Same as -xunroll=<n>
+-V                    Same as -verbose=version
+-v                    Same as -verbose=diags
+-vdelx                In compatiblity mode, call _vector_deletex_ instead of _vector_delete_
+-verbose=<a>[,<a>...]  Control verbosity during compilation
+-w                    Suppress most compiler warning messages
+-Xm                   Support dollar character in C++ identifiers
+-xa                   Collect data for tcov basic block profiling (old format)
+-xalias_level[=<a>]   Enable optimizations based on the specified alias_level; <a>={compatible|any|simple}
+-xar                  Create archive library with instantiated templates
+-xarch=<isa>          Specify target architecture instruction set
+-xautopar             Enable automatic loop parallelization
+-xbinopt={prepare|off}        Prepare the binary for future binary optimizations and analysis
+-xbuiltin[=<a>]       Enable profitable inline or substitute intrinsic functions; <a>={%all|%none}
+-xcache=<c>           Define cache properties for use by optimizer
+-xcg89                Same as -xtarget=ss2
+-xcg92                Same as -xtarget=ss1000
+-xchar=<a>            Treat type char as signed or unsigned; <a>={s|signed|u|unsigned}
+-xcheck[=<a>[,<a>...]]  Generate runtime checks for error condition <a>={%all|%none|stkovf|no%stkovf}
+-xchip=<c>            Specify the target processor for use by the optimizer
+-xcode=<c>            Generate different code for forming addresses
+-xcrossfile[=<n>]     Enable optimization and inlining across source files, n={1|0}
+-xdebugformat=<a>     Selects the format of debugging information; <a>={dwarf|stabs}
+-xdepend[=<b>]        Analyze loops for data dependencies; <b>={yes|no}
+-xdryrun              Show compiler commands built by driver; no compilation
+-xdumpmacros[=<a>[,<a>...]]  Prints macro definitions on the standard error output
+-xe                   Perform only syntax/semantic checking, no code generation
+-xF[=<a>[,<a>...]]    Compile for later mapfile reordering; <a>={[no%]func|[no%]gbldata|[no%]lcldata|%all|%none}
+-xhelp=<f>            Display on-line help information; <f>={flags|readme}
+-xhwcprof[=<a>]       Enable/disable program annotation for hardware counter profiling; <a>={enable|disable}
+-xia                  Enable interval arithmetic
+-xinline=[<a>[,<a>...]]   Attempt inlining of specified user routines, <a>={%auto|[no%]<func>}
+-xinstrument=<a>      Enable/disable instrumentation for race detection tool, <a>=[no%]datarace
+-xipo[=<n>]           Perform interprocedural analysis and optimizations, <n>={1|0|2}
+-xipo_archive=<a>     Enable crossfile optimization including archive files; <a>={none|readonly|writeback}
+-xjobs=<n>            Maximum number of components compiler will fork in parallel
+-xlang=<a>[,<a>...]   The set of languages used in the program; <a>={f95|f90|f77|c99}
+-xldscope=<a>         Indicates the appropriate linker scoping within the source program; <a>={global|symbolic|hidden}
+-xlibmieee            Force IEEE 754 return values for math routines in exceptional cases
+-xlibmil              Inline selected libm math routines for optimization
+-xlibmopt             Link with optimized math library
+-xlic_lib=<l>[,<l>...]  Link with Sun supplied licensed libraries listed in <l>
+-xlinkopt[=<n>]       Perform optimizations on relocatable object files, <n>={1|0|2}
+-xloopinfo            Show loops that parallelized
+-xM                   Generate makefile dependencies
+-xM1                  Generate makefile dependencies, but exclude /usr/include
+-xMD                  Same as -xM, but put dependency into file (.d) and continue compilation
+-xMerge               Merge data segment into text segment
+-xMF <dependencyfile> Specify file name for makefile dependency output
+-xMMD                 Same as -xM1, but put dependency into file (.d) and continue compilation
+-xmaxopt[=<l>]        Maximum optimization level allowed on #pragma opt; <l>={5|off|1|2|3|4}
+-xmemalign[=<a><b>]   Controls memory alignment; <a>={1|2|4|8|16}, <b>={i|s|f}
+-xnolib               Do not link with default system libraries
+-xnolibmil            Cancel -xlibmil on command line
+-xnolibmopt           Cancel -xlibmopt on command line
+-xO<n>                Generate optimized code; <n>={1|2|3|4|5}
+-xopenmp[=<a>]        Enable OpenMP language extension; <a>={parallel|noopt|none}
+-xpagesize=<a>        Controls the preferred page size for the stack and for the heap; <a>={8K|64K|512K|4M|32M|256M|2G|16G|default}
+-xpagesize_heap=<a>   Controls the preferred page size for the heap; <a>={8K|64K|512K|4M|32M|256M|2G|16G|default}
+-xpagesize_stack=<a>  Controls the preferred page size for the stack; <a>={8K|64K|512K|4M|32M|256M|2G|16G|default}
+-xpch=<a>             Enable precompiled headers. Collect data for, or use existing, PCH file; <a>={auto|autofirst|{collect|use}:<file>[.Cpch]}
+-xpchstop=<file>      Specified include file marks end of initial common sequence of pre-processing directives for precompiled headers
+-xpg                  Compile for profiling with gprof
+-xport64[=<a>]        Enable extra checking for code ported from 32-bit to 64-bit platforms; <a>={full|implicit|no}
+-xprefetch[=<a>[,<a>...]]  Enable prefetch instructions; <a>={yes|no|[no%]auto|[no%]explicit|latx:<n>.<n>}
+-xprefetch_auto_type=<a>  Specify automatic indirect prefetch insertion for loops; <a>=[no%]indirect_array_access
+-xprefetch_level[=<n>]  Controls the aggressiveness of automatic generation of prefetch instructions; <n>={1|2|3}
+-xprofile=collect[:<a>]   Compile for profile feedback data collection
+-xprofile=tcov        Compile for tcov basic block profiling (new format)
+-xprofile=use[:<a>]   Optimize with runtime profile data feedback
+-xprofile_ircache[=<path>] Path to intermediate file cache used with -xprofile option
+-xprofile_pathmap=<collect-path>:<use-path>  Map object file path from <collect-path> to <use-path>
+-xreduction           Recognize reduction operations in parallelized loops
+-xregs=<r>[,<r>...]   Specify the usage of optional registers
+-xrestrict[=<f>[,<f>...]]  Treat pointer-valued function parameters as restricted; <f>={%source|%all|%none|<function-name list>}
+-xs                   Allow debugging without object (.o) files
+-xsafe=mem            Assume that no memory based traps will occur
+-xsb                  Compile for use with the WorkShop source browser
+-xsbfast              Generate only WorkShop source browser information; no compilation
+-xspace               Do not do optimizations that increase code size
+-xtarget=<t>          Specify target system for optimization
+-xthreadvar[=<a>[,<a>...]]  Specify thread-local storage; <a>={%all|%none|[no%]dynamic}
+-xtime                Report the execution time for each compilation phase
+-xtrigraphs[=<b>]     Enable|disable trigraph translation; <b>={yes|no}
+-xunroll=<n>          Enable unrolling loops n times where possible
+-xustr=<a>            Support sixteen-bit string literals; <a>={ascii_utf16_ushort|no}
+-xvector[=<a>]        automatic generation of calls to the vector library functions and/or the generation of the SIMD instructions. <a>={[no%]lib|%none}
+-xvis[={yes|no}]      Enable the use of VIS inline templates
+-xwe                  Convert all warnings to errors
+-z <x>                Link editor option
+All other options are passed down to ld.
+
+Suffix 'a'            Object library
+Suffix 'il'           Inline expansion file
+Suffix 'o'            Object file
+Suffix 'so'           Shared object
+Suffix 's'            Assembler source
+Suffix 'S'            Assembler source for cpp
+Suffix 'c'            C++ source
+Suffix 'cc'           C++ source
+Suffix 'cxx'          C++ source
+Suffix 'cpp'          C++ source
+Suffix 'C'            C++ source
+Suffix 'c++'          C++ source
+Suffix 'i'            C++ source after preprocessing
+Suffix 'err'          ld error file
+
+For additional product information or the name of a Sun software reseller,
+please call 1-800-786-7638, or (+1) 512-434-1511 (outside the US),
+or fax your request to (+1) 512-218-3866.
+
+For technical support, please contact your Sun software reseller for the name of an
+Authorized Service Provider.
+
+For more information, please browse http://docs.sun.com
+
+To access the complete documentation set, go to the documentation index at
+file:/opt/app/SUNWspro/docs/index.html
+------------------------------------------------------------------------------------------
+/usr/bin/CC -V
+CC: Sun C++ 5.9 SunOS_sparc 2007/05/03
+
+------------------------------------------------------------------------------------------
+fabs() : <math.h> [double fabs(double x);]
+    computes the absolute value of x, |x|.
+    If x is NaN, a NaN is returned.
+    If x is +-0, +0 is returned.
+    If x is +-Inf, +Inf is returned.
+
+------------------------------------------------------------------------------------------
+	sscanf(trade_feed,"cal_position_%s.dat",region);
+	region[2] = '\0';
+------------------------------------------------------------------------------------------
+	
