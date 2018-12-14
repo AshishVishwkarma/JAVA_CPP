@@ -1,0 +1,38 @@
+#include <iostream>
+
+using namespace std;
+
+//class Widget;
+//vector<Widget> createVec();
+vector<int> createVec();
+template<typename T> class TD;
+template<typename T> void gfunc(const T& param)
+{TD<T>; TD<decltype(param)>;}
+
+void gprint(); //{cout << "gprint" << endl;}
+
+class TestClass2{
+    public:
+  
+  void testMethod1(){
+      cout << "testMethod1" << endl;
+      gprint();
+      const auto vw = createVec();
+      //gfunc(&vw[0]);
+  }  
+  void testMethod2(){
+      cout << "testMethod2" << endl;
+      //AbsBase* ptrAbs2 = new ConDerived2();
+  }
+};
+
+
+int main(){
+	cout << "Test started." << endl;
+
+	TestClass2 testObj2;
+	testObj2.testMethod1();
+	cout << "Test ended." << endl;
+	
+	return 0;
+}
