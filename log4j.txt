@@ -1,0 +1,46 @@
+
+logger
+appenders
+layouts
+
+
+Core Objects:
+	Logger Object
+	Layout Object
+	Appender Object
+
+Support Objects:
+	Level Object
+	Filter Object
+	ObjectRenderer
+	LogManager
+	
+
+apache-log4j-2.8-bin:
+	[https://logging.apache.org/log4j/2.x/download.html]
+	To use Log4j 2 in your application make sure that both the API and Core jars are in the application’s classpath. 
+	Add the dependencies listed below to your classpath.
+		log4j-api-2.8.jar
+		log4j-core-2.8.jar
+
+JAXP-compatible XML parser:
+	Xerces.jar [http://xerces.apache.org/xerces-j/install.html]
+
+	
+Configuring log4j involves assigning the Level, defining Appender, and specifying Layout objects in a configuration file.
+---------------------------------------------------------------------------------------------------------------------
+
+logging-log4j-1.2.13.zip:
+	https://archive.apache.org/dist/logging/log4j/1.2.13/
+
+	Extract 'logging-log4j-1.2.13.zip' at "C:\Ashish"
+	
+	CLASSPATH = ${CLASSPATH};C:\Ashish\logging-log4j-1.2.13\dist\lib\log4j-1.2.13.jar;C:\Ashish\java_project\log4j_properties
+	Path = ${Path};C:\Ashish\logging-log4j-1.2.13\dist\lib;
+
+log4j.properties:
+	By default, the LogManager looks for a file named log4j.properties in the CLASSPATH.
+	
+	
+	
+	
