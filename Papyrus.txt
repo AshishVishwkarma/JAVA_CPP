@@ -1,0 +1,61 @@
+Background
+Reverse engineering means to import a software source code into a tool like Papyrus and see the software structure in Model Explorer and diagrams.
+Forward engineering means to generate software source code from a model, like a Papyrus class diagram.
+Round trip engineering means to go full circle starting with reverse engineering, changing the model (class diagram), then forward engineering the new source code.
+
+Preparation
+You need to install an additional module in Papyrus. A working internet connection is needed.
+1.	Start Papyrus, then on menu Help / Install Papyrus Additional Components
+a.	It takes a few minutes for papyrus to show the available components
+2.	Select Designer Java
+a.	This installs all the components needed for Java round trip engineering
+b.	(Note: a different component is available for C++ ((Designer-CPP))
+c.	Incubation means that the component is still under development: some bugs are possible
+3.	Click Finish or OK to all buttons including Papyrus restart
+a.	After restart the installation is complete
+
+Reverse engineering a Java program
+1.	Make a new folder in a new location on your hard disk, call it "Engineering"
+2.	Inside Engineering make another folder called "Code"
+3.	Download the file "Code.zip" into the "Engineering" folder and unzip it
+4.	Papyrus Java reverse engineering works only in a Java package. To have a clear, easy to use structure we will create one Papyrus workspace containing two Papyrus projects: a Java project for reverse engineering and a Papyrus project for editing and forward engineering
+a.	Start Papyrus / File / Switch workspace / Other / Browse
+b.	Select your Engineering folder
+c.	Papyrus will shut down and restart in the Engineering workspace
+5.	File / New / Project / Java / Java Project. Call it "Reverse". Click "No" on the "Open associated perspective" menu.
+6.	File / New / Papyrus / Papyrus Project / UML call it "Forward" / Finish
+a.	We now have 2 Projects in our Project explorer
+7.	Import the Java source code into Papyrus. Note that you must import *.java source code, not *.class compiled binaries
+a.	Create a Java package in Reverse. Right click in src package in Reverse / New / Package, call it "Import"
+b.	Right click on the new Import package / Import / General / File system / Next / From directory / find and select the Code directory / Select all / Deselect loggerControl.txt / Finish
+8.	The imported classes appear on Project Explorer. They have not yet been reverse engineered (Papyrus cannot use them yet). 
+a.	To reverse engineer, right click on the Import package / Java / Java Reverse
+b.	The reverse engineer menu appears. Rename the default creation package to "Forward" and click OK. The reverse engineered classes appear in a package in the Forward project. Papyrus can use these reversed classes now!
+c.	(Note: it is also possible to reverse engineer one class at a time by right clicking on the class)
+9.	Click "Save all" in menu to save your work
+10.	Take a look at the imported classes via Model Explorer. See the classes, associations, operations and attributes.
+11.	Now look at your reverse engineered classes in a class diagram
+a.	Right click on the Forward package / New Diagram / Class diagram
+b.	Select all classes and drag them to the diagram
+12.	Click anywhere on the diagram, press CTRL-A to select all classes on the diagram, and using Papyrus menu select Arrange All. The classes line up on the diagram
+13.	Making sure all classes are still selected, press CTRL-F5 or use Papyrus menu Diagram / Filters / Show/Hide compartments
+a.	On the first class, expand and select only attributes and operations
+b.	Click on Propagate selection to make all other classes the same. Click OK.
+14.	Now classes show the right compartments but we must tell Papyrus to show contents. 
+a.	Making sure all classes are still selected, press F4 or use Papyrus menu Diagram / Filters / Select the elements to show. Click Select All and OK.
+b.	Making sure all classes are still selected, use Papyrus menu Arrange All to clean up the diagram
+15.	We still don't see the associations.
+a.	Right click anywhere on diagram / Filters / Show All Related Links
+b.	Now we see a generalization and an interface realization association
+
+
+
+Forward engineering a Papyrus Java model
+1.	Modify the classes as you like, either via the class diagram or the Model Explorer, and Save All
+2.	Right click on the Forward package / Designer / Generate Java Code
+3.	Leave everything on the code generation menu unchanged, click Finish
+4.	Done! The Java class source code had been generated in a new folder in your project workspace
+a.	With Windows explorer go to your workspace, there will be a new folder called "org.eclipse.papyrus.javagen.RootElement"
+b.	Navigate into this folder to "src" folder and you will find your forward engineered Java source code there.
+c.	(Note: it is also possible to forward engineer one class at a time by right clicking on the class)
+
