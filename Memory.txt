@@ -383,4 +383,25 @@ That said, you still have the issue of creating buffers: you need to synchronize
 
 In this example, the original buffer is never accessed by application code. Instead, it serves as a master for producing copies in a synchronized method, and those copies are used by the application. Once a thread finishes, the garbage collector will dispose of the buffer(s) that it used, leaving the master untouched.
 
-
+--------------------------------------------------------------------------------
+Footprint:
+	The word footprint generally refers to the extent of physical dimensions that an object occupies, giving a sense of its size.
+	
+Memory Footprint:
+	The memory footprint of a software application indicates its runtime memory requirements, while the program executes. 
+	This includes all sorts of active memory regions like that the program ever needs while executing and will be loaded at least once during the entire run:
+		code segment containing
+		data segment
+		heap memory
+		call stack
+		memory required to hold any additional data structures:
+			symbol tables
+			debugging data structures
+			open files
+			shared libraries mapped to the current process, etc.
+			
+	NOTE: Larger programs have larger memory footprints.
+	
+	Programs themselves often do not contribute the largest portions to their own memory footprints; rather, structures introduced by the run-time environment take up most of the memory. 
+	For example, a C++ compiler inserts vtables, type info objects and many temporary and anonymous objects that are active during a program's execution. In a Java program, the memory footprint is predominantly made up of the runtime environment in the form of Java Virtual Machine (JVM) itself that is loaded indirectly when a Java application launches. In addition, on most operating systems, disk files opened by an application too are read into the application's address space, thereby, contributing to its footprint.
+		
