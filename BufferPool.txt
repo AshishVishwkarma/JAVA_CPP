@@ -1,0 +1,58 @@
+Buffer Pools:
+The buffer pool space is located outside of the garbage collector-managed memory. It’s a way to allocate native off-heap memory. 
+Java will grow buffer pools as required.
+
+ByteBuffer:
+java.nio package comes with the ByteBuffer class. It allows us to allocate both direct and non-direct byte buffers. There is nothing special about non-direct byte buffers—they are an implementation of HeapByteBuffer created by ByteBuffer.allocate() and ByteBuffer.wrap() factory methods. As the name of the class suggests, these are on-heap byte buffers. 
+
+Why would anyone need to allocate something in a native memory? 
+To answer this question, we need to understand how operating systems perform I/O operations. Any read or write instructions are executed on memory areas which are a contiguous sequence of bytes. 
+NOTE: The JVM specification does not make it mandatory for byte[] to occupy a contiguous space on the heap. The specification doesn’t even guarantee that heap space will be contiguous itself!
+Although it seems to be rather unlikely that JVM will place a one-dimensional array of primitives in different places in memory, byte array from Java heap space cannot be used in native I/O operations directly. It has to be copied to a native memory before every I/O, which of course, leads to obvious inefficiencies. For this reason, a direct buffer was introduced. 
+
+Direct Buffer:
+A direct buffer is a chunk of native memory shared with Java from which you can perform a direct read. An instance of DirectByteBuffer can be created using the ByteBuffer.allocateDirect() factory method. Byte buffers are the most efficient way to perform I/O operations and thus, they are used in many libraries and frameworks—for example, in Netty.
+Please note—you can limit the amount of direct byte buffer space that an application can allocate, by using -XX:MaxDirectMemorySize=N flag. Although this is possible, you would need a very good reason to do so.
+
+Memory Mapped Buffer:
+A direct byte buffer may also be created by mapping a region of a file directly into memory. In other words, we can load a region of a file to a particular native memory region that can be accessed later. As you can imagine, it can give a significant performance boost if we have the requirement to read the content of a file multiple times. Thanks to memory mapped files, subsequent reads will use the content of the file from the memory, instead of loading the data from the disc every time it’s needed. MappedByteBuffer can be created via the FileChannel.map() method.
+
+An additional advantage of memory mapped files is that the OS can flush the buffer directly to the disk when the system is shutting down. Moreover, the OS can lock a mapped portion of the file from other processes on the machine.
+
+Drawbacks of direct buffers:
+One of the problems with direct buffers is that it’s expensive to allocate them. Regardless of the size of the buffer, calling ByteBuffer.allocateDirect() is a relatively slow operation. It is, therefore, more efficient to either use direct buffers for large and long-lived buffers or create one large buffer, slice off portions on demand, and return them to be re-used when they are no longer needed. A potential problem with slicing may occur when slices are not always the same size. The initial large byte buffer can become fragmented when allocating and freeing objects of different size. Unlike Java heap, direct byte buffer cannot be compacted, because it’s not a target for the garbage collector.
+In general it is best to allocate direct buffers only when they yield a measurable gain in program performance.
+
+Monitoring the Usage of Buffer Pools:
+Tools used to monitor amount of direct or mapped byte buffers used by your application:
+- VisualVM (with BufferMonitor plugin)
+- FusionReactor
+
+Off Heap or Direct Memory:
+This is almost same as Direct ByteBuffer but with little different, it can be allocated by unsafe.allocateMemory, as it is direct memory so it creates no GC overhead. Such type of memory must be manually released.
+In theory Java programmer are not allowed to do such allocation. 
+
+Performance:
+My test environment is: OS : Ubuntu 14.04 JDK : OpenJDK 1.7.0_91 CPU: Xeon E5-1650 
+Measured average time per item over 100M integers is as follows: [Mops/sec = Million/Sec]
+Writes: 
+	int[] – 0.952ns = 1050 Mops/sec 
+	Unsafe – 1.228ns = 814 Mops/sec 
+	direct ByteBuffer – 1.328ns = 753 Mops/sec 
+	heap ByteBuffer – 1.886ns = 530 Mops/sec 
+Reads: 
+	int[] – 0.502ns = 1992 Mops/sec 
+	Unsafe – 0.872ns = 1146 Mops/sec 
+	direct ByteBuffer – 0.944ns = 1059 Mops/sec 
+	heap ByteBuffer – 2.175ns = 459 Mops/sec 
+I’ve posted the source of my test here: https://docs.google.com/document/d/1_Mi8atjsYqGtuWUDmfTnnVG0qaeS2f6j3th9oeMXXKs/edit?usp=sharing
+
+As the Object construct and GC are only happen in HeapAllocatedObject, but not others. it supposed to be slowest.
+----------------------------------------------------------------------
+Memory footprint of an application:
+
+----------------------------------------------------------------------
+Dead code elimination:
+In compiler theory, dead code elimination (also known as DCE, dead code removal, dead code stripping, or dead code strip) is a compiler optimization to remove code which does not affect the program results. 
+Removing such code has several benefits: it shrinks program size, an important consideration in some contexts, and it allows the running program to avoid executing irrelevant operations, which reduces its running time. It can also enable further optimizations by simplifying program structure. Dead code includes code that can never be executed (unreachable code), and code that only affects dead variables (written to, but never read again), that is, irrelevant to the program.
+
