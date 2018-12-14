@@ -1,0 +1,6 @@
+J2EE is essentially about standardizing a range of enterprise services, such as naming and directory services
+(JNDI), transaction management offering a standard API potentially spanning disparate transactional
+resources (JTS and JTA), connection to legacy systems (JCA), resource pooling, and thread
+management. The true power of J2EE lies in these services, and this standardization has done great
+service to the industry.
+
