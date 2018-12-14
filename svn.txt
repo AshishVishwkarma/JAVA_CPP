@@ -1,0 +1,45 @@
+1.1: FSFS, a flat-file repository storage option for the repository
+1.2: server-side locks on files
+1.3: path-based authorization controls
+1.4: one-way repository replication over a network
+1.5: semi-automated tracking of branching and merging, interactive resolution of file conflicts, sparse checkouts, client-side management of changelists, powerful new syntax for externals definitions, and SASL authentication support
+1.6: tree conflicts to make branching and merging more robust
+1.7: working copy management library, sleeker HTTP protocol for Subversion client/server interaction
+
+---------------------------------------------------------------
+svn help
+svn --version
+=>
+svn, version 1.9.5-SlikSvn (SlikSvn/1.9.5)
+   compiled Dec  2 2016, 22:16:15 on x86_64-microsoft-windows6.2.9200
+
+Copyright (C) 2016 The Apache Software Foundation.
+This software consists of contributions made by many people;
+see the NOTICE file for more information.
+Subversion is open source software, see http://subversion.apache.org/
+
+The following repository access (RA) modules are available:
+
+* ra_svn : Module for accessing a repository using the svn network protocol.
+  - with Cyrus SASL authentication
+  - handles 'svn' scheme
+* ra_local : Module for accessing a repository on local disk.
+  - handles 'file' scheme
+* ra_serf : Module for accessing a repository via WebDAV protocol using serf.
+  - using serf 1.3.9 (compiled with 1.3.9)
+  - handles 'http' scheme
+  - handles 'https' scheme
+
+The following authentication credential caches are available:
+
+* Wincrypt cache in C:\Users\uiser_name\AppData\Roaming\Subversion
+
+Creating a Working Copy:
+svn checkout https://svn.dts.fm.rbsgrp.net/tbcrt/trunk/hawk-aggregation/
+=>
+
+Update the Working Copy:
+svn update
+------------------------------------------------------------------------
+
+
