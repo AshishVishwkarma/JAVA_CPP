@@ -1,0 +1,12 @@
+Usage of design patterns in the java library:
+Decorator:
+---------
+The design of the stream classes in the java.io package makes it possible for them to be combined using the decorator design-pattern. When a stream is closed, it also closes the stream that it is decorating.
+Example:
+	private void incorrectWriting() throws IOException {
+       DataOutputStream out = new DataOutputStream(new FileOutputStream("data"));
+       out.writeInt(666);
+       out.writeUTF("Hello");
+       out.close();
+   }
+
