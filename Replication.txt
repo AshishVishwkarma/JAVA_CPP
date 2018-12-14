@@ -1,0 +1,57 @@
+
+You can copy data from one database to another in different ways depending on which method best suits the needs at your site:
+- Using a single database replication definition that lets you choose whether or not to replicate individual tables, transactions, functions, system stored procedures, and data definition language (DDL). You can use multisite availability (MSA) for database replication.
+- Using function replication definitions, where each one identifies a specific system stored procedure for replication.
+- Using table replication definitions, where each one identifies a specific table for replication and, optionally, specifies a subset of columns to be replicated.
+
+
+Introduction to Managing Replicated Tables:
+Replication Server allows you to copy and update data from a table in one database—the primary—to a table in another database—the replicate.
+
+Note: The primary database is also referred to as the “source.” The replicate database is also referred to as the “destination.”
+
+To establish a table as the source, you create a replication definition that specifies the location of the data you want to copy and describes the structure of the table in which the data resides.
+
+Before you copy data from the source table, you must also create a duplicate of the table in the destination data server. The table in the destination data server should match the schema published by the replication definition. Then, in the Replication Server that manages the destination table, you create a subscription to the replication definition. A subscription resembles a SQL select statement.
+NOTE: The replicate table may have the same or different name and/or the same or different owner name as the primary table. It may contain all or a subset of the columns in the primary table, with the same or different column names or datatypes. The replication definition must specify any such differences between the primary and replicate tables.
+NOTE: The replicate table may include a column that is not in the replication definition if the column accepts null values, has a defined default value, or you use a custom function string to apply a value to that column.
+
+You can include replication definitions for related tables and stored procedures in a publication and then create subscriptions (in the replicate Replication Server) against all of them as a group.
+NOTE: A replicate database can subscribe to multiple replication definitions of a primary table, but a replicate table can subscribe to only one replication definition of a primary table.
+
+When you create a subscription, the replicate table is filled in with the initial table data in a process called materialization. In most cases, Replication Server copies data into the replicate table automatically. You can also manually materialize the data.
+
+You can change the datatype of replicated values using the heterogeneous datatype support (HDS) feature. HDS allows you to translate the datatype of a replicated column value to a datatype acceptable to the replicate data server. You can use HDS in Sybase environments, in non-Sybase environments, and in mixed Sybase and non-Sybase data server environments.
+
+Mark Tables for Replication: 
+After you create a replication definition for the table, use sp_setreptable to mark the table for replication.
+After a table is marked for replication, RepAgent begins forwarding the table’s log records to the Replication Server. If you have marked a table for replication, you do not need to mark it again for another replication definition.
+
+--------------------------------------------------------------
+How Replication Server Works
+Replication Server distributes data over a network by managing replicated transactions while retaining transaction integrity across the network.
+
+It also provides application developers and system administrators with a flexible publish-and-subscribe model for marking data and stored procedures to be replicated.
+
+A Replication Server at each primary or replicate site coordinates the data replication activities for the local data servers and exchanges data with Replication Servers at other sites.
+
+A Replication Server:
+Receives transactions from primary databases through Replication Agents and distributes them to sites with subscriptions for the data
+Receives transactions from other Replication Servers and applies them to local databases
+Replication Server system tables store the information needed to accomplish these tasks. The system tables include descriptions of the replicated data and the following replication objects:
+Replication definitions and subscriptions
+Security records for Replication Server users
+Routing information for other sites
+Access methods for local databases
+Other administrative information
+Replication Server system tables are stored in a database called the Replication Server System Database (RSSD).
+
+To manage replication information in Replication Server, use Replication Command Language (RCL). You can execute RCL commands, which resemble SQL commands, on Replication Server using isql, the Sybase interactive SQL utility. For a complete reference for RCL, see the Replication Server Reference Manual.
+
+
+primary Adaptive Server
+primary table
+
+
+replicate table
+replicate Replication Server
