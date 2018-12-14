@@ -1,0 +1,120 @@
+Java only supports signed types (except char) because it was assumed that one type was simpler for beginners to understand than having two types for each size. In C it was perceived to be a source of error so support for unsigned types was not included.
+So the designers picked four sizes
+	byte, 8 bit
+	short, 16 bit
+	int, 32 bit
+	long, 64 bit.
+and to keep things consistent they were all signed just like float and double.
+The byte, short, int, and long types describe signed integers whose values are stored in two's  complement form.
+
+Benefits of unsigned type:
+Unsigned integers are useful when working with binary values (such as representing memory contents, bit masking, or bit shifting), and in various numeric-processing contexts (such as cryptography). They're also a form of self-documentation for values that are never negative; for example, a counter or an array's length.
+In some cases, unsigned integers can be more efficient for certain operations, such as division.
+However a signed byte is rarely very useful and given they allowed unsigned 16-bit char having an unsigned byte might have made more sense.
+It becomes harder to do any image processing with images byte not being able to give a straight 140 gray level but a -116 that you need to & 0xff to get the correct value. 
+Where this doesn't work so well is when you have to interact with systems which use unsigned integer types. This can be source of confusion and to which type to use instead because often it doesn't make any difference.
+
+
+
+Drawbacks of unsigned type:
+[Look at unsigned arithmetic for details.]
+Java made the right decision to avoid having unsigned integers because 
+(1) most programs that use unsigned integers can do just as well with signed integers and this is more natural in terms of how people think, and 
+(2) using unsigned integers results in lots easy to create but difficult to debug issues such as integer arithmetic overflow and losing significant bits when converting between signed and unsigned types. If you mistakenly subtract 1 from 0 using signed integers it often more quickly causes your program to crash and makes it easier to find the bug than if it wraps around to 2^32 - 1, and compilers and static analysis tools and runtime checks have to assume you know what you're doing since you chose to use unsigned arithmetic. Also, negative numbers like -1 can often represent something useful, like a field being ignored/defaulted/unset while if you were using unsigned you'd have to reserve a special value like 2^32 - 1 or something similar. The unsigned type is pure evil.
+
+For example:
+The fact that in C unsigned - int produces unsigned is even more evil.
+Here is a snapshot of the problem that burned me more than once:
+	// We have odd positive number of rays, 
+	// consecutive ones at angle delta from each other.
+	assert( rays.size() > 0 && rays.size() % 2 == 1 );
+
+	// Get a set of ray at delta angle between them.
+	for( size_t n = 0; n < rays.size(); ++n )
+	{
+		// Compute the angle between nth ray and the middle one.
+		// The index of the middle one is (rays.size() - 1) / 2,
+		// the rays are evenly spaced at angle delta, therefore
+		// the magnitude of the angle between nth ray and the 
+		// middle one is: 
+		double angle = delta * fabs( n - (rays.size() - 1) / 2 ); 
+
+		// Do something else ...
+	}
+Have you noticed the bug yet? I confess I only saw it after stepping in with the debugger.
+Because n is of unsigned type size_t the entire expression n - (rays.size() - 1) / 2 evaluates as unsigned. That expression is intended to be a signed position of the nth ray from the middle one: the 1st ray from the middle one on the left side would have position -1, the 1st one on the right would have position +1, etc. After taking abs value and multiplying by the delta angle I would get the angle between nth ray and the middle one.
+
+Java approach:
+To address Java's lack of support for unsigned integers, developers often use larger data types; for example, storing a 16-bit unsigned value in a 32-bit signed integer or a 32-bit unsigned value in a 64-bit signed integer. However, there's no way to record a 64-bit unsigned integer, because Java doesn't offer a 128-bit signed integer type. Also, this approach requires twice the memory to store the unsigned values, and any logic that depends on the rules of two's-complement overflow must often be rewritten.
+
+Although char, in Java, does not support unsigned arithmetic, it essentially can be treated as an unsigned integer. You would have to explicitly cast arithmetic operations back into char, but it does provide you with a way to specify unsigned numbers.
+	char a = 0;
+	char b = 6;
+	a += 1;
+	a = (char) (a * b);
+	a = (char) (a + b);
+	a = (char) (a - 16);
+	b = (char) (b % 3);
+	b = (char) (b / a);
+	//a = -1; // Generates complier error, must be cast to char
+	System.out.println(a); // Prints ? 
+	System.out.println((int) a); // Prints 65532
+	System.out.println((short) a); // Prints -4
+	short c = -4;
+	System.out.println((int) c); // Prints -4, notice the difference with char
+	a *= 2;
+	a -= 6;
+	a /= 3;
+	a %= 7;
+	a++;
+	a--;
+
+	
+Java's signed integer types can emulate same-sized unsigned integers. Java SE 8 complements this emulation by adding new static methods to java.lang.Integer and java.lang.Long for converting between strings and unsigned integers, comparing two signed integer values as unsigned integers, and performing unsigned division and remainder operations. (Addition, subtraction, and multiplication methods aren't needed because +, -, and * properly handle signed or unsigned operands in twos-complement arithmetic.)
+NOTE: Java SE 8 doesn't introduce new unsigned types (such as UnsignedInteger) with methods that perform arithmetic on unsigned integers to avoid dealing with the overhead of autoboxing and unboxing, and to allow the built-in arithmetic operators to be reused.	
+
+With JDK8 there are new APIs for Long and Integer which provide helper methods when treating long and int values as unsigned values.
+	compareUnsigned
+	divideUnsigned
+	parseUnsignedInt
+	parseUnsignedLong
+	remainderUnsigned
+	toUnsignedLong
+	toUnsignedString
+	
+NOTE: Java SE 8 doesn't introduce most of the aforementioned methods to java.lang.Byte and java.lang.Short because these types aren't arithmetically supported by the virtual machine—bytes and shorts are promoted to ints before arithmetic operations are performed on them. However, Java SE 8 adds toUnsignedInt() and toUnsignedLong() methods to these classes so that you can conveniently convert bytes and shorts to unsigned ints and longs.
+
+Example:
+	public class UIDemo
+	{
+	   public static void main(String[] args)
+	   {
+		  int x = Integer.MAX_VALUE;
+		  int y = Integer.MAX_VALUE+1;
+		  System.out.printf("%d %d\n", x, y);
+		  System.out.printf("x compared to y: %d\n", Integer.compare(x, y));
+		  System.out.printf("x compared to y: %d\n", Integer.compareUnsigned(x, y));
+		  System.out.printf("y divided by x: %d\n", y/x);
+		  System.out.printf("y divided by x: %d\n", Integer.divideUnsigned(y, x));
+		  System.out.printf("x+y: %s\n", Integer.toString(x+y));
+		  System.out.printf("x+y: %s\n", Integer.toUnsignedString(x+y));
+		  System.out.printf("parse(\"2147483647\"): %d\n", Integer.parseUnsignedInt("2147483647"));
+		  System.out.printf("parse(\"2147483648\"): %d\n", Integer.parseUnsignedInt("2147483648"));
+		  System.out.printf("parse(\"-2147483648\"): %d\n", Integer.parseUnsignedInt("-2147483648"));
+	   }
+	}
+
+	Output:
+	2147483647 -2147483648
+	x compared to y: 1
+	x compared to y: -1
+	y divided by x: -1
+	y divided by x: 1
+	x+y: -1
+	x+y: 4294967295
+	parse("2147483647"): 2147483647
+	parse("2147483648"): -2147483648
+	Exception in thread "main" java.lang.NumberFormatException: Illegal leading minus sign on unsigned string -2147483648.
+		  at java.lang.Integer.parseUnsignedInt(Integer.java:672)
+		  at java.lang.Integer.parseUnsignedInt(Integer.java:711)
+		  at UIDemo.main(UIDemo.java:16)
