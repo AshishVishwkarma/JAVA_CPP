@@ -1,0 +1,35 @@
+Aggregate Operations:
+	Introduced with JDK 8, Aggregate operations are often used in conjunction with lambda expressions to make programming more expressive, using less lines of code.
+	
+	Aggregate operations do not mutate the underlying collection. In fact, you must be careful to never mutate a collection while invoking its aggregate operations. Doing so could lead to concurrency problems should the stream be changed to a parallel stream at some point in the future. 
+
+Traversing collection using using aggregate operations:
+
+	To sequentially iterate through a collection of shapes and prints out the red objects:
+	myShapesCollection.stream().filter(e -> e.getColor() == Color.RED).forEach(e -> System.out.println(e.getName()));
+	
+	To parallelly iterate through a collection of shapes and prints out the red objects:
+	myShapesCollection.parallelStream().filter(e -> e.getColor() == Color.RED).forEach(e -> System.out.println(e.getName()));
+	
+	To convert the elements of a Collection to String objects, then join them, separated by commas:
+	String joined = elements.stream().map(Object::toString).collect(Collectors.joining(", "));
+	
+	To sum the salaries of all employees:
+	int total = employees.stream().collect(Collectors.summingInt(Employee::getSalary)));
+	
+	To accumulate a Collection of names into a TreeSet:
+	Set<String> set = people.stream().map(Person::getName).collect(Collectors.toCollection(TreeSet::new));
+	
+	To remove duplicates without changing order:
+	list = (List)list.stream().distinct().collect(Collectors.toList());
+
+	To group employees by department
+	Map<Department, List<Employee>> byDept = employees.stream().collect(Collectors.groupingBy(Employee::getDepartment));
+	
+	To compute sum of salaries by department
+	Map<Department, Integer> totalByDept = employees.stream().collect(Collectors.groupingBy(Employee::getDepartment, Collectors.summingInt(Employee::getSalary)));
+	
+	To classify people by state and city:
+	Map<String, Map<String, List<Person>>> peopleByStateAndCity = personStream.collect(Collectors.groupingBy(Person::getState, Collectors.groupingBy(Person::getCity)));
+	
+	
