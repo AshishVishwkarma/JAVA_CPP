@@ -1,0 +1,25 @@
+Both, java and c++, are statically typed languages. One of the key mechanism that supports abstraction and polymorphism in these languages is inheritance.
+-------------------------------------------------------------------------------------
+Template vs Inheritance:
+Templates in C++ are used to achieve static polymorphism. Static polymorphism breaks the source code dependency nicely, but it does not solve as many problems as does dynamic polymorphism.
+Major limitations of the static polymorphism are:
+- types cannot be changed at run-time.
+- introducing a new kind of the type requires recompilation and redeployment.
+--------------------------------------------------------------------------------------
+Objectory = Object oriented methodology [Objective Systems SF AB]
+Introduced use-cases in software development.
+--------------------------------------------------------------------------------------
+Change in programming paradigm:
+Modular -> Structured -> Object-oriented
+
+Change is inevitable.
+- Analyse the way in which a system is actually used.
+- Look for the sequences of interactions that comprise the operational behavior of the software.
+
+A use case is a particular form or pattern or exemplar of usage, a scenario that begins with some user of the system initiating some transaction or sequence of interrelated events.
+
+Changes in
+--------------------------------------------------------------------------------------
+Abstraction:
+	=> the amplification of the essential and the elimination of the irrelevant.
+
