@@ -1,0 +1,179 @@
+dbx Commands:
+ _cb_aoutchange
+ _cb_prompt    
+ _macro        
+ assign          Assign a new value to a program variable
+ attach          change the program being debugged
+ autoexpand    
+ bsearch         Search backward in the current source file
+ button          Define a new button for the Custom Button window of the GUI.
+ buttonx         Define a new button for the Custom Button window of the GUI.
+ call            Call a procedure
+ cancel          Cancel the current signal
+ catch           Catch the given signal(s)
+ check           Enable checking of memory access, leaks, or usage (RTC) (Solaris only)
+ clear           Clear breakpoints
+ collector       Collect performance data (Solaris only)
+ commands        List all built-in commands with one-line descriptions
+ cont            Cause the process to continue execution
+ dbxdebug        Displays internal state of dbx (for dbx developers' use)
+ dbxenv          List or set dbx customization variables
+ debug           List or change the program being debugged
+ delete          Delete breakpoints and other events
+ detach          Release the target process from dbx's control
+ dis             Disassemble machine instructions
+ display         Re-evaluate and print expressions at every stopping point
+ document        Add help information for a command or topic
+ down            Move down the call stack (away from `main')
+ dump            Print all variables local to a procedure
+ edit            Invoke $EDITOR on a source file (GUI: display the source)
+ examine         Show memory contents
+ exception       Print the value of the current C++ exception
+ exists          Check for existence of a symbol name
+ file            List or change the current file
+ files           List file names that match a regular expression
+ fix             Recompile and relink a source file
+ fixed           List names of all `fixed' files
+ fortran_modules  List fortran modules or variables/functions in modules
+ frame           List or change the current stack frame number
+ func            List or change the current function
+ funcs           List all function names that match a regular expression
+ gdb             Support gdb command set
+ handler         Modify event handlers (enable, disable, etc.)
+ help            Provide more information about a command or topic
+ hide            Hide stack frames that match a regular expression
+ history         Manipulate the command history list
+ ignore          Don't catch the given signal(s)
+ import          Import commands from a dbx command library
+ intercept       Intercept throws (C++ exceptions) of the given type (C++ only)
+ language        List or change the current source language
+ line            List or change the current line number
+ list            Display lines of a source file
+ listi           Display source and disassembled instructions
+ loadobject      List and manage symbolic information from loadobjects
+ loadobjects   
+ log           
+ lwp             List or change the current LWP
+ lwps            List all LWPs in the process
+ mark          
+ mmapfile        View contents of mmaped files missing from coredump
+ module          Read debugging information for one or more modules
+ modules         List module names
+ next            Step one source line (stepping over calls)
+ nexti           Step one machine instruction (stepping over calls)
+ pathmap         Map one pathname to another for finding source files, etc.
+ pop             Remove one or more frames from the callstack
+ print           Print the value of an expression
+ proc            Display status of the current process
+ prog            Manage programs being debugged and their attributes
+ quit            Exit dbx
+ regs            Print current value of registers
+ replay          Replay debugging commands since last `run'
+ rerun           Variation on the run command.
+ restore         Restore dbx to a previously saved state
+ rprint          Print an expression using shell quoting rules
+ rtc           
+ run             Run the program with arguments
+ runargs         Change the arguments of the target process
+ save            Save commands to a file
+ scopes          Print list of active scopes
+ search          Search forward in the current source file
+ setenv          Set an environment variable
+ showblock       Show where the particular heap block was allocated from (RTC)
+ showleaks       Report new memory leaks since last `showleaks' command (RTC)
+ showmemuse      Show memory used since last `showmemuse' command (RTC)
+ source          Execute commands from a given file
+ status          List event handlers (breakpoints, etc.)
+ step            Step one source line or statement (stepping into calls)
+ stepi           Step one machine instruction (stepping into calls)
+ stop            Set a source-level breakpoint
+ stopi           Set a machine-level breakpoint
+ suppress      
+ sync            Show information about a given synchronization object
+ syncs           List all synchronization objects (locks)
+ thread          List or change the current thread
+ threads         List all threads
+ tool_notify   
+ trace           Show executed source lines, function calls, or variable changes
+ tracei          Show machine instructions, function calls, or variable changes
+ unbutton        Remove GUI buttons
+ uncheck         Disable checking of memory access, leaks, or usage (RTC)
+ undisplay       Undo `display' commands
+ unhide          Undo `hide' commands
+ unimport        Unload commands from a dbx command library
+ unintercept     Undo `intercept' commands (C++ only)
+ unsuppress      Undo `suppress' commands (RTC)
+ unwatch         Undo `watch' commands
+ up              Move up the call stack (toward `main')
+ use             List or change the directory search path
+ vitem           Data Visualization interface
+ watch           Re-parse, evaluate and print expressions at every stopping point
+ whatis          Print type of expression or declaration of type
+ when            Execute commands on given event
+ wheni           Execute commands on given low-level event
+ where           Print the call stack
+ whereami        Display the current source line
+ whereis         Print all uses of a given name, or symbolic name of an address
+ which           Print the full qualification of a given name
+ whocatches      Tell where a C++ exception would be caught
+ksh Commands:
+ .               Read commands from a file
+ :               No-op
+ [               `[ <expr> ]' is shorthand for `test <expr>'
+ bg              Put a job into the background
+ bind            Display or modify the emacs editing key bindings
+ break           Break out of `while', `until', or `for' loop
+ builtin         Use builtin version of command, ignoring functions and aliases
+ cd              Change the working directory
+ continue        Go to next iteration of `while', `until', or `for' loop
+ dalias          Define a dbx-style (csh-style) alias
+ eval            Evaluate text as a command
+ exec            Execute a new program (terminate dbx)
+ exit            Exit dbx
+ export          Mark given environment variables to be exported
+ false           Does nothing and returns non-zero
+ fc              (Fix Command) Manipulate history list
+ fg              Put a job into the foreground
+ getopts         Parse positional parameters for options
+ hash            Manipulate tracked aliases (fast command lookup)
+ jobs            List all active jobs
+ kalias          Define a ksh-style alias
+ kill            Send a signal to a process; kill the target process
+ kprint          (Korn print) Echo the arguments
+ let             Evaluate ksh arithmetic expressions
+ read            Read a line from a file or standard input
+ readonly        Mark environment variables unchangeable
+ return          Return from a ksh function
+ set             Set ksh options or positional parameters
+ sh              Execute a command explicitly from $PATH
+ shift           Shift the positional parameters
+ test            Check various file attributes, string comparison, etc.
+ times           Print accumulated user and system times for dbx and children
+ trap            Associate ksh commands with signals or process exit
+ true            Does nothing and returns zero
+ typeset         Set attributes of environment variables
+ ulimit          List or change various resource limits
+ umask           Restrict read/write/execute permissions for new files
+ unalias         Remove alias definition
+ unset           Remove definition of environment variables
+ wait            Wait for background jobs to terminate
+ whence          Display meaning of name (alias, function, builtin, command)
+ksh Keywords:
+ case            Multiway branching: case <string> in <cases> esac
+ do              Command grouping: while <test> do <cmds> done
+ done            Command grouping: while <test> do <cmds> done
+ elif            Conditional execution: if then elif else fi
+ else            Conditional execution: if then elif else fi
+ esac            Multiway branching: case <string> in <cases> esac
+ fi              Conditional execution: if then elif else fi
+ for             Loop over a list: for <var> in <list> do <cmds> done
+ function        Define a ksh function:  function <name> { <cmds> }
+ if              Conditional execution: if then elif else fi
+ in              for ... in ... do ... done  or  case ... in ... esac
+ select          Selection loop: select <var> in <list> do <cmds> done
+ then            Conditional execution: if then elif else fi
+ time            Report user and system times: time <cmd>
+ until           Loop until condition is true: until <test> do <cmds> done
+ while           Loop while condition is true: while <test> do <cmds> done
+ {               Command grouping:  { <cmd>; <cmd>; }
+ }               Command grouping:  { <cmd>; <cmd>; }
