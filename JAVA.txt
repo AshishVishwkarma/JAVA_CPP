@@ -1,1 +1,638 @@
-To Do
+Application server:
+-------------------------------------------------------------------------------------
+javap : to compare the byte code [part of Java Development Kit (JDK) binary tools]
+JD GUI: byte code-to-Java source code decompiler
+-------------------------------------------------------------------------------------
+Use of the Commercial Features for any commercial or production purpose requires a separate license from Oracle.
+“Commercial Features” means those features that are identified as such in the Licensing Information User Manual – Oracle Java SE and Oracle Java Embedded Products Document, accessible at http://www.oracle.com/technetwork/java/javase/documentation/index.html, under the “Description of Product Editions and Permitted Features” section.
+-------------------------------------------------------------------------------------
+Information about the data Oracle collects as a result of your Software download:
+- Oracle does not collect or track any personally identifiable information (such as names or email addresses) about you, or associate your online behavior with personally identifiable data.
+- Oracle collects anonymous technical data commonly known as "telemetry" to Measure its Own Performance, Diagnose Problems, and Improve Your Experience.
+- Some or all of the following information may be sent to Oracle depending on the type of transaction and the client system's configuration:
+	State
+	Old Version
+	New Version
+	Installer Architecture
+	User's Architecture
+	User's Operating System
+	Method/Venue
+	Country Code
+	Return Code
+	Sponsor Code
+	Time
+	IP Address
+	TransactionID
+	
+	For automatic-update transactions only:
+	Bubble Count
+	Bubble Time
+	Notification Policy
+-------------------------------------------------------------------------------------
+JDWP (Java Debugger Wire Protocol) to communicate with a running JVM 
+Exception.printStackTrace(), when an Exception or Error is thrown in Java
+Checked and unchecked exceptions
+Throwable
+jstack
+jps
+unchecked or unsafe operatations
+NullPointerException
+
+Different JVMs:
+	Oracle’s Hotspot, Oracle’s JRockit, IBM’s J9
+	
+-------------------------------------------------------------------------------------
+Java reads its declarations from compiled binary files.
+Java lacks a self type. A self-type is a special type that always refers to the current class. Its used mostly with generics.
+	public final class ZonedDate { // immutable class
+		ZonedDate withYear(int year) { ... }
+	}
+	public final class LocalDate { // immutable class
+		LocalDate withYear(int year) { ... }
+	}
+	Assume both methods actually contain the same code, so we try to abstract that out into a shared abstract superclass:
+	public abstract class BaseDate {
+		BaseDate withYear(int year) { ... }
+	}
+	public final class ZonedDate extends BaseDate {
+		// withYear removed as now in superclass, or is it?
+	}
+	public final class LocalDate extends BaseDate {
+		// withYear removed as now in superclass, or is it?
+	}
+	The problem is that the two methods need the returned instance to be of the same type as the original in order to call other methods, but they are no longer returning the correct type. Instead, they now return the type of the superclass.
+	
+	Work around: [simulated self-type]
+	public abstract class BaseDate<T extends BaseDate<T>>{
+		BaseDate withYear(int year) { 
+			... 
+			return self();
+		}
+		protected abstract T self();
+	}
+	public final class ZonedDate extends BaseDate<ZonedDate> {
+		@Override protected ZonedDate self(){return this;}
+	}
+	public final class LocalDate extends BaseDate<LocalDate> {
+		@Override protected LocalDate self(){return this;}
+	}
+	
+	
+-------------------------------------------------------------------------------------
+Class:
+Object:
+Instance creation:	
+Instance Initialization Block (IIB):
+-------------------------------------------------------------------------------------
+Heap:
+	The heap is the run-time data area from which memory for all class instances and arrays is allocated.
+	The Java Virtual Machine has a heap that is shared among all Java Virtual Machine threads.
+	
+	The Java Virtual Machine assumes no particular type of automatic storage management system, and the storage management technique may be chosen according to the implementor's system requirements.
+	The memory for the heap does not need to be contiguous.
+	
+	If a computation requires more heap than can be made available by the automatic storage management system, the Java Virtual Machine throws an OutOfMemoryError.
+	
+	NOTE: The definition of the heap does not actually specify any particular data structure (such as an actual heap, for example), which means that the JVM could theoretically choose to allocate objects on the program stack (i.e. the stack that an assembly program has direct access to via ss:bp, push/pop, etc.) and consider that part of its “heap”.
+	In reality, it does something very similar to this, using what is known as a slab allocator, which is efficiency-wise just like a stack in terms of “push”, but which has no corresponding “pop”.
+	
+call stack:	
+	Java also has a notion of a call stack, although this notion does not imply that the Java stack is the same as the program stack (i.e. ss:bp).
+	
+	Each Java Virtual Machine thread has a private Java Virtual Machine stack, created at the same time as the thread. A Java Virtual Machine stack stores frames. A Java Virtual Machine stack is analogous to the stack of a conventional language such as C: it holds local variables and partial results, and plays a part in method invocation and return. 
+	Because the Java Virtual Machine stack is never manipulated directly except to push and pop frames, frames may be heap allocated. The memory for a Java Virtual Machine stack does not need to be contiguous.
+
+	If the computation in a thread requires a larger Java Virtual Machine stack than is permitted, the Java Virtual Machine throws a StackOverflowError.
+	If Java Virtual Machine stacks can be dynamically expanded, and expansion is attempted but insufficient memory can be made available to effect the expansion, or if insufficient memory can be made available to create the initial Java Virtual Machine stack for a new thread, the Java Virtual Machine throws an OutOfMemoryError.
+	
+Operand Stacks:
+	Java also has a notion of an operand stack per frame, although this notion does not imply that the Java operand stack is the same as the program stack (i.e. ss:bp).
+	
+	Each frame contains a last-in-first-out (LIFO) stack known as its operand stack. The maximum depth of the operand stack of a frame is determined at compile-time and is supplied along with the code for the method associated with the frame.
+		operand stack => operand stack of the current frame
+	The operand stack is empty when the frame that contains it is created. The Java Virtual Machine supplies instructions to load constants or values from local variables or fields onto the operand stack. Other Java Virtual Machine instructions take operands from the operand stack, operate on them, and push the result back onto the operand stack. The operand stack is also used to prepare parameters to be passed to methods and to receive method results.
+	
+Why Java does not allow to allocate an object on the stack:	
+From a C (or assembler) programmer’s point-of-view, the program stack (i.e. “the stack”) handles both of these things: the Java call stack and the Java operand stack functionality.
+The theoretical equivalent to a C++ allocation-on-the-stack would be to allocate a Java object on the operand stack, but there is simply no instruction in Java that allows that to occur. (In fact, the operand stack can only hold primitive types, references, and a “return address” type for the JSR/RET instructions.)
+	
+The machinery aside, the reason that Java does not allow code to specify whether an object is to be allocated “on the stack” versus “on the heap” is because it doesn’t have to. Language design (at least in good languages) is about achieving consistency without unnecessarily crippling the resulting execution of the code (together simply referred to as “elegance”), and Java was able to achieve that without the complexity of stack allocation. It would be obscene for Java to allow for this capability without a significant re-work of the language and runtime, because it would introduce a fairly dramatic amount of inconsistency.
+
+In some ways, Java has the ideal solution: Simplify the language by omitting stack allocation and everything that it would require, while allowing the runtime to transparently take advantage of the efficiency of stack allocation if and when it makes sense.
+	
+	NOTE: One of the major benefits of Java was to avoid a class of C/C++ errors where a program would create pointers to storage/objects obtained directly or indirectly from malloc() and then the program would free() that storage. Now the pointers reference unallocated memory that could be reassigned to something else, and if code uses an invalid pointer to reference what it thinks is the old object it creates all sorts of problems that are hard to debug. A stack holds storage that is freed when a function returns to its caller. A Java compiler can optimize things by putting temporary objects on the stack, provided it can be sure that no reference to that object could be passed or copied to another object so the only references are on the same stack and will be freed when the object is destroyed. In all other cases, stack based objects recreate the invalid reference problem Java was specifically designed to eliminate.
+	
+	NOTE: Java does support stack allocation for objects, but only as a runtime optimisation. There is no way to define this explicitly.
+-------------------------------------------------------------------------------------
+Resource leak:
+The typical Java application manipulates several types of resources such as files, streams, sockets, and database connections. Such resources must be handled with great care, because they acquire system resources for their operations. Thus, you need to ensure that they get freed even in case of errors, otherwise resource leak occurs.
+This leads to application servers being frequently restarted when resource exhaustion occurs, because operating systems and server applications generally have an upper-bound limit for resources.
+For any resource that was successfully initialized, a corresponding invocation to its close() method is required. This requires disciplined usage of try/catch/finally blocks to ensure that any execution path from a resource opening eventually reaches a call to a method that closes it. So, writing correct code for resources requires lots of boilerplate code in the form of nested try/catch/finally blocks. These boilerplate codes, when used in excess, make it harder to read the business logic of a method.
+Better Resource Management with Java SE 7:
+Java Platform, Standard Edition (Java SE) 7 answers to the automatic resource management problem in the form of a new language construct proposed as part of Project Coin and called the try-with-resources statement.
+	private void correctWriting() throws IOException {
+       DataOutputStream out = null;
+       try {
+           out = new DataOutputStream(new FileOutputStream("data"));
+           out.writeInt(666);
+           out.writeUTF("Hello");
+       } finally {
+           if (out != null) {
+               out.close();
+           }
+       }        
+   }
+=>
+	private void writingWithARM() throws IOException {
+       try (DataOutputStream out 
+               = new DataOutputStream(new FileOutputStream("data"))) {
+           out.writeInt(666);
+           out.writeUTF("Hello");
+       }
+   }
+NOTE: Any resource declared within a try block opening will be closed. We can declare multiple resources within a try block opening separating them by semicolon.
+	try (
+       FileOutputStream out = new FileOutputStream("output");
+       FileInputStream  in1 = new FileInputStream(“input1”);
+       FileInputStream  in2 = new FileInputStream(“input2”)
+   ){
+       // Do something useful with those 3 streams!
+   }
+NOTE: Such a try-with-resources statement may be followed by catch and finally blocks, just like regular try statements prior to Java SE 7.
+
+Making an Auto-Closeable Class:
+A try-with-resources statement cannot manage every class. A new interface called java.lang.AutoCloseable was introduced in Java SE 7.
+It provides a void method named close() that may throw a checked exception (java.lang.Exception). Any class willing to participate in try-with-resources statements should implement this interface.
+
+NOTE: Such close() methods have been retro-fitted into many classes of the standard Java SE run-time environment , including the java.io, java.nio, javax.crypto, java.security, java.util.zip, java.util.jar, javax.net, and java.sql packages. The major advantage of this approach is that existing code continues working just as before, while new code can easily take advantage of the try-with-resources statement.
+
+NOTE: A good practice is to have a separate declaration in a try-with-resources statement for each resource that holds critical system resources, such as a file descriptor, a socket, or a JDBC connection where you must make sure that a close() method is eventually called. Otherwise, provided that the related resources APIs permit this, chaining allocations is not just a convenience: It also yields more compact code while preventing resource leaks.
+-------------------------------------------------------------------------------------
+Exception:
+An exception is an event, which occurs during the execution of a program, that disrupts the normal flow of the program's instructions.
+
+NOTE: WHEN a program violates the semantic constraints of the Java programming language, the Java Virtual Machine signals this error to the program as an exception.
+Example: an attempt to index outside the bounds of an array.
+Programs can also throw exceptions explicitly, using throw statements. Explicit use of throw statements provides an alternative to the old-fashioned style of handling error conditions by returning error-codes.
+
+Every exception is represented by an instance of the class Throwable or one of its subclasses. Such an object can be used to carry information (information about the error, including its type and the state of the program when the error occurred) from the point at which an exception occurs to the handler that catches it. Handlers (exception handlers) are established by catch clauses of try statements.
+Creating an exception object and handing it to the runtime system is called throwing an exception.
+
+During the process of throwing an exception, the Java Virtual Machine abruptly completes, one by one, any expressions, statements, method and constructor invocations, initializers, and field initialization expressions that have begun but not completed execution in the current thread. [=> stack unwinding.]
+This process continues until a handler (exception handler) is found that indicates that it handles that particular exception by naming the class of the exception or a superclass of the class of the exception. The exception handler chosen is said to catch the exception.
+NOTE: If no such handler is found, then the exception may be handled by one of a hierarchy of uncaught exception handlers.
+[ If no catch clause that can handle an exception can be found, then the current thread (the thread that encountered the exception) is terminated. Before termination, all finally clauses are executed and the uncaught exception is handled according to the following rules:
+	• If the current thread has an uncaught exception handler set, then that handler is executed.
+	• Otherwise, the method uncaughtException is invoked for the ThreadGroup that is the parent of the current thread. If the ThreadGroup and its parent ThreadGroups do not override uncaughtException, then the default handler's uncaughtException method is invoked.
+]
+
+When an exception is thrown, control is transferred from the code that caused the exception to the nearest dynamically enclosing catch clause, if any, of a try statement that can handle the exception.
+NOTE: A statement or expression is dynamically enclosed by a catch clause if it appears within the try block of the try statement of which the catch clause is a part, or if the caller of the statement or expression is dynamically enclosed by the catch clause.
+NOTE: The caller of a statement or expression depends on where it occurs:
+• If within a method, then the caller is the method invocation expression that was executed to cause the method to be invoked.
+• If within a constructor or an instance initializer or the initializer for an instance variable, then the caller is the class instance creation expression or the method invocation of newInstance that was executed to cause an object to be created.
+• If within a static initializer or an initializer for a static variable, then the caller
+is the expression that used the class or interface so as to cause it to be initialized
+(§12.4).
+
+NOTE: The exception mechanism of the Java SE platform is integrated with its synchronization model, so that monitors are unlocked as synchronized statements and invocations of synchronized methods complete abruptly.	
+
+After a method throws an exception, the runtime system searches the call stack for a method that contains a block of code that can handle the exception. This block of code is called an exception handler. When an appropriate handler is found, the runtime system passes the exception to the handler. An exception handler is considered appropriate if the type of the exception object thrown matches the type that can be handled by the handler. The exception handler chosen is said to catch the exception.
+
+Synchronous and Asynchronous exceptions:
+
+All exceptions (synchronous and asynchronous) are precise. => when the transfer of control takes place, all effects of the statements executed and expressions evaluated before the point from which the exception is thrown must appear to have taken place. No expressions, statements, or parts thereof that occur after the point from which the exception is thrown may appear to have been evaluated.
+
+
+
+
+The Three Kinds of Exceptions:
+- checked exception
+- unchecked exception
+	- error
+		These are exceptional conditions that are external to the application, and that the application usually cannot anticipate or recover from.
+	- runtime exception
+		These are exceptional conditions that are internal to the application, and that the application usually cannot anticipate or recover from.
+		Runtime exceptions represent problems that are the result of a programming problem. Such problems include arithmetic exceptions, such as dividing by zero; pointer exceptions, such as trying to access an object through a null reference; and indexing exceptions, such as attempting to access an array element through an index that is too large or too small.
+NOTE: All exceptions are checked exceptions, except for those indicated by Error, RuntimeException, and their subclasses.
+NOTE: The Java programming language does not require methods to catch or to specify unchecked exceptions.
+NOTE: If a client can reasonably be expected to recover from an exception, make it a checked exception. If a client cannot do anything to recover from the exception, make it an unchecked exception.
+NOTE: You can throw only objects that inherit from the java.lang.Throwable class.
+
+Only one exception can be thrown at a time. Exceptions can mask each other. 
+Exceptions can be nested (or chained). However, nested exceptions should be used for causality between one exception and another, typically to wrap a low-level exception within one aimed at higher layers of an application architecture, e.g., a JDBC driver wrapping a socket exception into a JDBC connection.
+Nested or chained exception => one exception causes the other exception.
+
+Exception Masking:
+Exception from finally is suppressing original exception.
+When one exception causes another exception, the first exception is usually caught and then the second exception is thrown in response. In other words, there is a causal connection between the two exceptions.
+
+Supporting "Suppressed" Exceptions:
+Java SE 7 extends exceptions so that “suppressed” exceptions can be attached to primary exceptions.
+What we called a “masked” exception is actually an exception to be suppressed and attached to a primary exception.
+Extensions to java.lang.Throwable:
+	- public final void addSuppressed(Throwable exception)
+		appends a suppressed exception to another one, so as to avoid exception masking.
+		This method is thread-safe and typically called (automatically and implicitly) by the try-with-resources statement.
+	- public final Throwable[] getSuppressed() 
+		gets the suppressed exceptions that were added to an exception.
+
+NOTE:		
+In the try-with-resources statement, when there are two such exceptions, the exception originating from the try block is propagated and the exception from the finally block is added to the list of exceptions suppressed by the exception from the try block. As an exception unwinds the stack, it can accumulate multiple suppressed exceptions.
+
+The Java compiler expands the code which uses a try-with-resources statement as follows:
+   public static void runInARM() throws MyException {
+       try (AutoClose autoClose = new AutoClose()) {
+           autoClose.work();
+       }
+   }
+=>
+   public static void runInARM() throws MyException {
+       AutoClose localAutoClose = new AutoClose();
+       Object localObject1 = null;
+       try {
+           localAutoClose.work();
+       } catch (Throwable localThrowable2) {
+           localObject1 = localThrowable2;
+           throw localThrowable2;
+       } finally {
+           if (localAutoClose != null) {
+               if (localObject1 != null) {
+                   try {
+                       localAutoClose.close();
+                   } catch (Throwable localThrowable3) {
+                       localObject1.addSuppressed(localThrowable3);
+                   }
+               } else {
+                   localAutoClose.close();
+               }
+           }
+       }
+   }
+This indicates that using try-with-resources statement has no performance impact, because the compiler infers the minimal correct code for properly handling all exceptions. Indeed, try-with-resources statements are syntactic sugar.  
+NOTE: The specification for auto-closeable classes (implementing java.lang.AutoCloseable interface) suggests that throwing java.lang.Exception be avoided in favor of specific checked exceptions, and that no checked exception be mentioned if the close() method is not expected to fail. It also advises not to declare any exception that should not be suppressed, with java.lang.InterruptedException being the best example. Indeed, suppressing it and attaching it to another exception is likely to cause the thread interruption event to be ignored and put an application in an inconsistent state.
+
+Examples of exceptions:
+- IllegalArgumentException
+-------------------------------------------------------------------------------------
+Loading of class:
+The java command starts a Java application. 
+It does this by starting a Java runtime environment, loading a specified class, and calling that class's main method.	
+The Java runtime searches for the startup class, and other classes used, in three sets of locations: 
+	- the bootstrap class path, 
+	- the installed extensions, and 
+	- the user class path.	
+If -classpath and -cp are not used and CLASSPATH is not set, then the user class path consists of the current directory (.).
+Any class path wildcard expansion occurs before the Java VM is started. 
+No Java program will ever see wild cards that are not expanded except by querying the environment
+
+What if multiple instances of a java application is running?
+-------------------------------------------------------------------------------------
+
+Immutable object:
+	declared as final, to prevent modification via inheritance
+	its methods cannot modify its fields
+	the fields are always private and recommended to be final
+	
+	It is possible to mutate strings (and other immutable objects). It requires reflection and is very, very dangerous and should never ever be used unless you're actually interested in destroying the program.
+	
+Object address:
+	Strictly speaking, you can't print the address of an object in pure Java. The number that looks like an object address in the String produced by Object.toString() is the object's "identity hashcode". It may or may not be related to the object's current address:
+
+	The specs do not say how the identity hashcode number is calculated. It is deliberately left unspecified.
+	Since the number is a hashcode, it cannot change. So even though it is (typically) an object address, it will be the object's address at the time when the hashcode was first accessed. This could be different to its current address, and will be different if the GC has moved the object since the first time the object's hashcode was observed.
+	On a 64bit JVM (with a large enough heap size / not using compressed oops) addresses won't fit into an identity hashcode number which is returned as an int.
+	Anyhow, the way to get this number is to call System.identityHashCode(obj).
+
+	If you really want an object's current address, you can get it using JNI and a native method (and some abstraction breaking), or by using methods in the Unsafe class. But beware that both of these approaches are non-portable ... and that the object addresses that they give you are liable to "break" when the GC runs.
+	
+Shallow heap: memory usage of the individual object
+Retained heap: memory usage of the individual object and its child objects
+	
+String as immutable object:
+	String str = "Hello";
+	Here, str is not an object, it's a reference to an object.
+
+4 types of references in JAVA:
+– Strong References
+– Soft References
+– Weak References
+– Phantom References
+
+4 types of garbage collection roots:
+- Local variables
+- Active Java threads
+- Static variables
+- JNI References
+
+4 Access levels:
+- public
+- protected
+- private
+- default
+
+Oracle doesn’t specify how to manage memory so each JVM implementation  has its own set of algorithms.
+Java provides different types of references to avoid OutOfMemoryError.
+
+You need to store some objects during the lifetime of your program (because their intialization is costly).
+
+Strong References:
+	MyClass obj = new MyClass ();
+	you are creating a strong reference called “obj” to the newly created instance of MyClass.
+	
+Soft Reference:	
+	
+	Soft references are useful when you need to store many objects that can be (costly) re-instanciate if they are deleted by the JVM.
+	
+	Behavior of soft references might change if you run your program on different JVMs
+	Even if the soft referenced objects are automatically deleted by the garbage collector, the soft references (which are also objects) are not deleted!
+	
+	Oracle provides a ReferenceQueue that is filled with soft references when a referenced object is only softly reachable. Using this queue, you can clear the soft references and avoid an OutOfMemoryError.
+	
+Lack of const-correctness in Java:	
+	Usage of const in C++ is much different than just declaring constant variables. Essentially, it ensures that an object is immutable when accessed through a special kind of pointer called a const-pointer.
+	However in Java, in places where I'd normally want to return a const-pointer, I instead return a reference with an interface type containing only methods that shouldn't have side effects. Unfortunately, this isn't enforced by the langauge.
+
+	Interestingly, the Java language specification regards const as a reserved keyword — i.e., one that cannot be used as variable identifier — but assigns no semantics to it. It is thought that the reservation of the keyword occurred to allow for an extension of the Java language to include C++-style const methods and pointer to const type. The enhancement request ticket in the Java Community Process for implementing const correctness in Java was closed in 2005, implying that const correctness will probably never find its way into the official Java specification.
+
+	NOTE: final in Java is not similar to const in C++. final method for example work completely different from C++ const methods.
+	The final keyword on properties or variables , in Java, just ensures that a property or variable is only assigned to once. One could still alter the state of this object by, for example, calling some method with side effects. final is somewhat similar to stack allocation of C++ in terms of referring to an object rather than a pointer, but that's all it is.
+	
+	final in Java seems to work like C++ const for value types, but more like a C++ non-const T& for reference types.
+	
+Compile-time type:
+Run-time type:
+-------------------------------------------------------------------
+Constructor:
+	A class contains constructors that are invoked to create objects from the class blueprint. Constructor declarations look like method declarations—except that they use the name of the class and have no return type.
+	
+	You cannot write two constructors that have the same number and type of arguments for the same class, because the platform would not be able to tell them apart. Doing so causes a compile-time error.
+	
+	The compiler automatically provides a no-argument, default constructor for any class without constructors. This default constructor will call the no-argument constructor of the superclass. In this situation, the compiler will complain if the superclass doesn't have a no-argument constructor so you must verify that it does. 
+	NOTE: If your class has no explicit superclass, then it has an implicit superclass of Object, which does have a no-argument constructor.
+	
+	NOTE: You can use a superclass constructor yourself. 
+	You can use access modifiers in a constructor's declaration to control which other classes can call the constructor.
+	
+Copy Constructor:	
+-------------------------------------------------------------------
+Inheritance:
+	In the Java language, classes can be derived from other classes, thereby inheriting fields and methods from those classes.
+	A class that is derived from another class is called a subclass (also a derived class, extended class, or child class).
+	The class from which the subclass is derived is called a superclass (also a base class or a parent class).
+	
+	NOTE: Object class (defined in the java.lang package) has no superclass. Every class has one and only one direct superclass (single inheritance). In the absence of any other explicit superclass, every class is implicitly a subclass of Object.
+	
+	inheritance chain:
+	
+	A subclass inherits all the members (fields, methods, and nested classes) from its superclass.
+	NOTE: Constructors are not members, so they are not inherited by subclasses, but the constructor of the superclass can be invoked from the subclass.
+	
+	A subclass inherits all of the public and protected members of its parent, no matter what package the subclass is in. If the subclass is in the same package as its parent, it also inherits the package-private members of the parent. 
+	You can use the inherited members as is, replace them, hide them, or supplement them with new members:
+		- The inherited fields can be used directly, just like any other fields.
+		- You can declare a field in the subclass with the same name as the one in the superclass, thus hiding it (not recommended).
+		- You can declare new fields in the subclass that are not in the superclass.
+		- The inherited methods can be used directly as they are.
+		- You can write a new instance method in the subclass that has the same signature as the one in the superclass, thus overriding it.
+		- You can write a new static method in the subclass that has the same signature as the one in the superclass, thus hiding it.
+		- You can declare new methods in the subclass that are not in the superclass.
+		- You can write a subclass constructor that invokes the constructor of the superclass, either implicitly or by using the keyword super.
+		
+	NOTE: A subclass does not inherit the private members of its parent class.
+	A nested class has access to all the private members of its enclosing class—both fields and methods. Therefore, a public or protected nested class inherited by a subclass has indirect access to all of the private members of the superclass.
+	
+implicit casting:
+	Object obj = new HashMap();
+
+explicit casting:
+	HashMap hMap = (HashMap)obj; // If obj is not a HashMap at runtime, an exception will be thrown.
+	
+	Safe way:
+	if (obj instanceof HashMap) {
+		HashMap hMap = (HashMap)obj;
+	}
+	
+Types of inheritance:
+	public, private, protected ?
+-------------------------------------------------------------------
+Object class:
+
+Concrete Methods:
+	protected Object	clone()
+	boolean	equals(Object obj)
+	protected void	finalize()
+	Class<?>	getClass()
+	int	hashCode()
+	void	notify()
+	void	notifyAll()
+	String	toString()
+	void	wait()
+	void	wait(long timeout)
+	void	wait(long timeout, int nanos)
+
+Package: java.lang.Object
+	
+-------------------------------------------------------------------
+Interface:
+Interfaces provide a convenient means of resolving the tension that sometimes occurs between what a class is and what it can do. 
+The interface name can be used as a reference to a heterogeneous set of objects that implement that interface.
+This may sound very much like inheritance-based polymorphism, but there is a key difference: 
+	Interfaces allow you to express situations that apply polymorphism to objects that do not share a common base class.
+
+Java interfaces only make a promise about what methods (functions) a class supplies, and cannot provide a shared implementation of those functions. They are simply (as their name suggests) interfaces.
+
+The two worlds -- the lines of inherited implementation and provided interfaces -- can remain clear and distinct in Java because they are expressed using different mechanisms (inheritance and interface).
+
+In the Java programming language, an interface is a reference type, similar to a class, that can contain only constants, method signatures, default methods, static methods, and nested types. Method bodies exist only for default methods and static methods. Interfaces cannot be instantiated—they can only be implemented by classes or extended by other interfaces.
+
+An interface can be used as an industry standard Application Programming Interface (API).
+-------------------------------------------------------------------
+Overriding instance method:
+	An instance method in a subclass with the same signature (name, plus the number and the type of its parameters) and return type as an instance method in the superclass overrides the superclass's method.
+	
+	The overriding method has the same name, number and type of parameters, and return type as the method that it overrides. An overriding method can also return a subtype of the type returned by the overridden method. This subtype is called a covariant return type.
+	
+	@Override annotation: instructs the compiler that you intend to override a method in the superclass. If, for some reason, the compiler detects that the method does not exist in one of the superclasses, then it will generate an error.
+	
+Hiding static method:
+	If a subclass defines a static method with the same signature as a static method in the superclass, then the method in the subclass hides the one in the superclass.
+	
+NOTE: The distinction between hiding a static method and overriding an instance method has important implications:
+	- The version of the overridden instance method that gets invoked is the one in the subclass.
+	- The version of the hidden static method that gets invoked depends on whether it is invoked from the superclass or the subclass.
+
+In Interface:	
+	Static methods = class methods => utility methods [modifier: static]
+	Abstract method = non-default and non-static methods [modifier: abstract (optional)]
+		An abstract method is a method that is declared without an implementation (without braces, and followed by a semicolon).
+		If a class includes abstract methods, then the class itself must be declared abstract.
+		NOTE: Methods in an interface that are not declared as default or static are implicitly abstract, so the abstract modifier is optional with interface methods.
+		
+	Default Methods: [modifier: default]
+		A method definition in an interface is a default method with the default keyword at the beginning of the method signature.
+		Default methods enable you to add new functionality to the existing interfaces of your libraries and ensure binary compatibility with code written for older versions of those interfaces.
+
+		Extending Interfaces That Contain Default Methods:
+		When you extend an interface that contains a default method, you can do the following:
+			- Not mention the default method at all, which lets your extended interface inherit the default method.
+			- Redeclare the default method, which makes it abstract.
+			- Redefine the default method, which overrides it.
+
+		
+		
+	NOTE: A static method is a method that is associated with the class in which it is defined rather than with any object. Every instance of the class shares its static methods. Static methods are helpful to organize helper methods in your libraries.
+	NOTE: An abstract method is a method declared without an implementation.
+	NOTE: All method declarations in an interface, including default methods, static methods, are implicitly public, so you can omit the public modifier.
+	
+-------------------------------------------------------------------
+abstract interface:
+	The abstract keyword is obsolete when working with Java interfaces, as a java interface by definition is abstract; it contains no implementation but only definitions.
+		public abstract interface INF{... } // old obsolete style
+		public interface INF{... }
+		NOTE: There is no difference in the generated class.
+		
+abstract class:
+	An abstract class is a class that is declared abstract — it may or may not include abstract methods. Abstract classes cannot be instantiated, but they can be subclassed.
+	If a class includes abstract methods, then the class itself must be declared abstract.
+	When an abstract class is subclassed, the subclass usually provides implementations for all of the abstract methods in its parent class. However, if it does not, then the subclass must also be declared abstract.
+	
+	NOTE: You can use static members (fields and methods) of an abstract class with a class reference (for example, AbstractClass.staticMethod()) as you would with any other class.
+	
+Abstract class vs Interface:
+	- With abstract classes, you can declare fields that are not static and final, and define public, protected, and private concrete methods. 
+	With interfaces, all fields are automatically public, static, and final, and all methods that you declare or define (as default methods) are public. 
+	- You can extend only one class, whether or not it is abstract, whereas you can implement any number of interfaces.
+	
+	NOTE: A class that implements an interface must implement all of the interface's methods. It is possible, however, to define a class that does not implement all of the interface's methods, provided that the class is declared to be abstract.
+	
+Consider using abstract classes if any of these statements apply to your situation:
+- You want to share code among several closely related classes.
+- You expect that classes that extend your abstract class have many common methods or fields, or require access modifiers other than public (such as protected and private).
+- You want to declare non-static or non-final fields. This enables you to define methods that can access and modify the state of the object to which they belong.
+
+Consider using interfaces if any of these statements apply to your situation:
+- You expect that unrelated classes would implement your interface. For example, the interfaces Comparable and Cloneable are implemented by many unrelated classes.
+- You want to specify the behavior of a particular data type, but not concerned about who implements its behavior.
+- You want to take advantage of multiple inheritance of type.
+
+Example of abstract class in the JDK: AbstractMap
+	AbstractMap is part of the Collections Framework. Its subclasses (which include HashMap, TreeMap, and ConcurrentHashMap) share many methods (including get, put, isEmpty, containsKey, and containsValue) that AbstractMap defines.
+	
+Example of class in the JDK that implements several interfaces: HashMap
+	HashMap implements the interfaces Serializable, Cloneable, and Map<K, V>. So, an instance of HashMap (regardless of the developer or company who implemented the class) can be cloned, is serializable (which means that it can be converted into a byte stream), and has the functionality of a map.
+	
+NOTE: many software libraries use both abstract classes and interfaces,e.g., the HashMap class implements several interfaces and also extends the abstract class AbstractMap.	
+--------------------------------------------------------------------
+functional interface:		
+--------------------------------------------------------------------
+Receiving object: on which the method is called
+Specified object: that is passed to a method
+--------------------------------------------------------------------
+Static class:
+
+--------------------------------------------------------------------
+Local Classes:
+Local classes are classes that are defined in a block, which is a group of zero or more statements between balanced braces. You typically find local classes defined in the body of a method.
+
+class ABC{
+	public void method1(){
+		class LocalClass{
+			....
+		}
+	}
+}
+A local class has access to the members of its enclosing class.
+In addition, a local class has access to local variables. However, a local class can only access local variables that are declared final. When a local class accesses a local variable or parameter of the enclosing block, it captures that variable or parameter (the variable is a captured variable).
+However, starting in Java SE 8, a local class can access local variables and parameters of the enclosing block that are final or effectively final. A variable or parameter whose value is never changed after it is initialized is effectively final.
+Starting in Java SE 8, if you declare the local class in a method, it can access the method's parameters.
+Declarations of a type (such as a variable) in a local class shadow declarations in the enclosing scope that have the same name.
+--------------------------------------------------------------------
+Nested classes:
+The Java programming language allows you to define a class within another class.
+Nested classes are divided into two categories: 
+	static and non-static.
+Nested classes that are declared static are called static nested classes. Non-static nested classes are called inner classes.
+
+NOTE: A nested class is a member of its enclosing class. Non-static nested classes (inner classes) have access to other members of the enclosing class, even if they are declared private. Static nested classes do not have access to other members of the enclosing class. As a member of the OuterClass, a nested class can be declared private, public, protected, or package private. 
+NOTE: Recall that outer classes can only be declared public or package private.
+
+Why Use Nested Classes?
+- It is a way of logically grouping classes that are only used in one place.
+- It increases encapsulation.
+- It can lead to more readable and maintainable code.
+
+Static Nested Classes:
+	A static nested class is associated with its outer class. A static nested class cannot refer directly to instance variables or methods defined in its enclosing class: it can use them only through an object reference.
+	
+	NOTE: A static nested class interacts with the instance members of its outer class (and other classes) just like any other top-level class. In effect, a static nested class is behaviorally a top-level class that has been nested in another top-level class for packaging convenience.
+	
+	Static nested classes are accessed using the enclosing class name:
+		OuterClass.StaticNestedClass
+
+	For example, to create an object for the static nested class, use this syntax:
+		OuterClass.StaticNestedClass nestedObject = new OuterClass.StaticNestedClass();
+		
+Inner Classes:
+	An inner class is associated with an instance of its enclosing class and has direct access to that object's methods and fields. It cannot define any static members itself.
+
+	Objects that are instances of an inner class exist within an instance of the outer class.
+	
+	To instantiate an inner class, you must first instantiate the outer class. Then, create the inner object within the outer object with this syntax:
+		OuterClass.InnerClass innerObject = outerObject.new InnerClass();
+
+	There are two special kinds of inner classes: 
+		local classes and anonymous classes.
+		
+	NOTE: Serialization of inner classes, including local and anonymous classes, is strongly discouraged. When the Java compiler compiles certain constructs, such as inner classes, it creates synthetic constructs; these are classes, methods, fields, and other constructs that do not have a corresponding construct in the source code. Synthetic constructs enable Java compilers to implement new Java language features without changes to the JVM. However, synthetic constructs can vary among different Java compiler implementations, which means that .class files can vary among different implementations as well. Consequently, you may have compatibility issues if you serialize an inner class and then deserialize it with a different JRE implementation.
+--------------------------------------------------------------------
+Anonymous class:
+Anonymous classes enable you to make your code more concise. They enable you to declare and instantiate a class at the same time. They are like local classes except that they do not have a name. Use them if you need to use a local class only once.
+
+	// anonymous class in the function call.
+	quitButton.addActionListener( new ActionListener( ){
+		// in place event response
+		public void actionPerformed( ActionEvent e ){ terminate( ); }
+	});
+
+NOTE: While local classes are class declarations, anonymous classes are expressions, which means that you define the class in another expression.	
+The anonymous class expression consists of the following:
+- The new operator.
+- The name of an interface to implement or a class to extend.
+- Parentheses that contain the arguments to a constructor, just like a normal class instance creation expression. Note: When you implement an interface, there is no constructor, so you use an empty pair of parentheses.
+- A body, which is a class declaration body. More specifically, in the body, method declarations are allowed but statements are not.
+NOTE: Because an anonymous class definition is an expression, it must be part of a statement.
+
+you can declare the following in anonymous classes:
+- Fields
+- Extra methods (even if they do not implement any methods of the supertype)
+- Instance initializers
+- Local classes
+NOTE: you cannot declare constructors in an anonymous class.
+
+An anonymous class has access to the members of its enclosing class.
+An anonymous class cannot access local variables in its enclosing scope that are not declared as final or effectively final. Anonymous class can capture local variables in its enclosing scope that are final or effectively final.
+A declaration of a type (such as a variable) in an anonymous class shadows any other declarations in the enclosing scope that have the same name. 
+
+You cannot declare static initializers or member interfaces in an anonymous class.
+An anonymous class can have static members provided that they are constant variables.
+
+Anonymous classes are often used in graphical user interface (GUI) applications.
+NOTE: Anonymous classes are ideal for implementing an interface that contains two or more methods. If an interface contains only one method, you can use a lambda expression instead of an anonymous class expression.
+
+-----------------------------------------------------------------------------------------
+Collections static methods:	
+	The method Collections.sort sorts an instance of List whose element type implements the interface Comparable.
+	Collections.singleton is a static factory method that returns an immutable Set containing only the specified element.
+	Collections.shuffle
+
+	
+
+
+	
+=========================================================================================
+States and behaviours of an object:
+
+-----------------------------------------------------------------------------------------
+Lambda expression:
+Enhanced for loops:
